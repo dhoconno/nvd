@@ -23,7 +23,7 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About NVD
-![NVD flowchart](https://www.figma.com/board/f7hsro1euO8gfBt3n60qvZ/NVD-workflow-diagram?node-id=1-2&t=3VLBqdrapyJetO4t-1)
+![NVD flowchart](nvd_flow.png)
 
 NVD is an opinionated workflow for identifying and exploring metagenomes for families of viruses that infect humans. It is opinionated in that it focuses narrowly on these virus families to the exclusion of other potentially interesting viral and non-viral microbial taxa. NVD works with arbitrarily large Oxford Nanopore and Illumina datasets without downsampling. The results are available in a LabKey Server data explorer available to O'Connor lab users and collaborators.
 
@@ -37,34 +37,34 @@ NVD begins with an Illumina paired-end or Oxford Nanopore dataset. It can also e
 
 These reads are the classified with the NCBI STAT tool, specifically the `aligns_to` command. A tax list containing the entire subtree of the virus families that infect humans is used for classification. This means that NVD is designed to find members of these virus families:
 
--Adenoviridae
--Anelloviridae
--Arenaviridae
--Arteriviridae 
--Astroviridae
--Bornaviridae
--Peribunyaviridae
--Caliciviridae
--Coronaviridae
--Filoviridae
--Flaviviridae
--Hepadnaviridae
--Hepeviridae
--Orthoherpesviridae
--Orthomyxoviridae
--Papillomaviridae
--Paramyxoviridae
--Parvoviridae
--Picobirnaviridae
--Picornaviridae
--Pneumoviridae
--Polyomaviridae
--Poxviridae
--Sedoreoviridae
--Retroviridae
--Rhabdoviridae
--Togaviridae
--Kolmioviridae
+- Adenoviridae
+- Anelloviridae
+- Arenaviridae
+- Arteriviridae 
+- Astroviridae
+- Bornaviridae
+- Peribunyaviridae
+- Caliciviridae
+- Coronaviridae
+- Filoviridae
+- Flaviviridae
+- Hepadnaviridae
+- Hepeviridae
+- Orthoherpesviridae
+- Orthomyxoviridae
+- Papillomaviridae
+- Paramyxoviridae
+- Parvoviridae
+- Picobirnaviridae
+- Picornaviridae
+- Pneumoviridae
+- Polyomaviridae
+- Poxviridae
+- Sedoreoviridae
+- Retroviridae
+- Rhabdoviridae
+- Togaviridae
+- Kolmioviridae
 
 Reads that have kmers that match one or more viruses within these families are saved by `aligns_to.` These are "putative viral reads." NVD uses seqkit grep to extract these sequences from the original dataset.
 
