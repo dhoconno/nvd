@@ -23,7 +23,7 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About NVD
-![NVD flowchart]](https://www.figma.com/board/f7hsro1euO8gfBt3n60qvZ/NVD-workflow-diagram?node-id=1-2&t=3VLBqdrapyJetO4t-1)
+![NVD flowchart](https://www.figma.com/board/f7hsro1euO8gfBt3n60qvZ/NVD-workflow-diagram?node-id=1-2&t=3VLBqdrapyJetO4t-1)
 
 NVD is an opinionated workflow for identifying and exploring metagenomes for families of viruses that infect humans. It is opinionated in that it focuses narrowly on these virus families to the exclusion of other potentially interesting viral and non-viral microbial taxa. NVD works with arbitrarily large Oxford Nanopore and Illumina datasets without downsampling. The results are available in a LabKey Server data explorer available to O'Connor lab users and collaborators.
 
