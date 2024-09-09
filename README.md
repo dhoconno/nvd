@@ -87,6 +87,7 @@ NVD is written in Snakemake and has its dependencies bundled in an Apptainer con
 
 ### Prerequisites
 
+- [Miniconda](https://docs.anaconda.com/miniconda/miniconda-install/)
 - [Apptainer](https://apptainer.org/docs/admin/main/installation.html)
 - [Snakemake](https://snakemake.readthedocs.io/en/stable/)
 - The `resources.zst` archive containing NCBI BLAST `core-nt`, NCBI STAT databases, a taxonomic rank database, and a taxonomic list of the subtree of human-infecting virus families. Get this from DHO.
@@ -101,32 +102,34 @@ NVD is written in Snakemake and has its dependencies bundled in an Apptainer con
 	conda activate nvd
 	conda install -y snakemake apptainer -c conda-forge
 	```
-2. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/nvd_30572.sif) the Apptainer image file. 
-3. Clone the repo
+2. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/nvd_30572.sif) the Apptainer image file.
+3. Clone the repo to the working directory
    ```sh
    git clone https://github.com/dhoconno/nvd.git
    ```
-4. Clone the repo
-   ```sh
-   git clone https://github.com/github_username/repo_name.git
+4. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/resources.zst) the `resources.zst` file containing databases and taxonomy files
+5. Start an Apptainer shell in the working directory with the repo files
    ```
-3. Install NPM packages
-   ```sh
-   npm install
+   apptainer shell nvd_30572.sif
    ```
-4. Enter your API in `config.js`
-   ```js
-   const API_KEY = 'ENTER YOUR API';
+6. Decompress the `resources.zst` file in the working directory
    ```
-5. Change git remote url to avoid accidental pushes to base project
-   ```sh
-   git remote set-url origin github_username/repo_name
-   git remote -v # confirm the changes
+   tar -I zstd -xvf resources.zst
+   ```
+7. Copy gzipped-FASTQ files to process into `data` folder within the working directory.
+8. Modify the `config.yaml` file to specify the samples to process and the path(s) to their FASTQ files. Here are example entries for the three supported file types:
+   ```
+   - name: water_S80_
+    r1_fastq: data/water_S80_L006_R1_001.fastq.gz
+    r2_fastq: data/water_S80_L006_R2_001.fastq.gz
+   - name: AE0000100C7A40
+    sra: SRR24010780
+   - name: AE0000100A8B3C
+    ont: data/AE0000100A8B3C.fastq.gz
    ```
 
+After installation, there should be `data`, `config`, `resources`, and `workflow` folders in the working directory.
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- USAGE EXAMPLES -->
 ## Usage
