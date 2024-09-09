@@ -83,11 +83,11 @@ The blast classifications, read mapping information, and associated contig metad
 <!-- GETTING STARTED -->
 ## Getting Started
 
-NVD is written in Snakemake and has its dependencies bundled in Apptainer or Docker containers. These have been tested on Linux and Mac machines running Apptainer and Docker Desktop, respectively. NVD should work on machines with at least 32GB of available RAM. The `resources.zst` file is approximately 230GB. After decompression, it is approximately 300GB. The amount of storage needed depends on the size of the FASTQ files; 530GB plus 3x the size of the input FASTQ files is a good guide. For example, if the input FASTQ files are 100GB, ensure that at least 830GB of storage are available.
+NVD is written in Snakemake and has its dependencies bundled in an Apptainer container. NVD should work on machines with at least 32GB of available RAM. The `resources.zst` file is approximately 230GB. After decompression, it is approximately 300GB. The amount of storage needed depends on the size of the FASTQ files; 530GB plus 3x the size of the input FASTQ files is a good guide. For example, if the input FASTQ files are 100GB, ensure that at least 830GB of storage are available.
 
 ### Prerequisites
 
-- [Apptainer](https://apptainer.org/docs/admin/main/installation.html) or [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- [Apptainer](https://apptainer.org/docs/admin/main/installation.html)
 - [Snakemake](https://snakemake.readthedocs.io/en/stable/)
 - The `resources.zst` archive containing NCBI BLAST `core-nt`, NCBI STAT databases, a taxonomic rank database, and a taxonomic list of the subtree of human-infecting virus families. Get this from DHO.
 - The `workflow` folder containing the Snakemake workflow and associated python scripts
@@ -101,8 +101,12 @@ NVD is written in Snakemake and has its dependencies bundled in Apptainer or Doc
 	conda activate nvd
 	conda install -y snakemake apptainer -c conda-forge
 	```
-2. Clone the repo
-2. Clone the repo
+2. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/nvd_30572.sif) the Apptainer image file. 
+3. Clone the repo
+   ```sh
+   git clone https://github.com/dhoconno/nvd.git
+   ```
+4. Clone the repo
    ```sh
    git clone https://github.com/github_username/repo_name.git
    ```
