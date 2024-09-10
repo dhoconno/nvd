@@ -1,4 +1,3 @@
-# scripts/labkey_upload_fasta.py
 import os
 import more_itertools
 from labkey.api_wrapper import APIWrapper
@@ -32,8 +31,12 @@ def parse_fasta(fasta_file):
 
 def insert_fasta_records(experiment, fasta_file, sample_name, api_key, snakemake_run_id):
     """
-    Insert records into LabKey
+    Insert records into LabKey if API key is provided.
     """
+    if not api_key:
+        print(f"Skipping LabKey upload because API key is missing.", file=sys.stderr)
+        return  # Exit function if API key is missing
+
     fasta_records = []
     for header, sequence in parse_fasta(fasta_file):
         fasta_records.append({
@@ -63,7 +66,7 @@ if __name__ == "__main__":
     # Reformat the FASTA file to remove newlines
     formatted_fasta = reformat_fasta(snakemake.input.fasta, snakemake.params.singleline_fasta_path)
 
-    # Run LabKey insert function
+    # Run LabKey insert function if API key is present
     insert_fasta_records(
         experiment=snakemake.params.experiment,
         fasta_file=formatted_fasta,
@@ -71,3 +74,8 @@ if __name__ == "__main__":
         api_key=snakemake.params.api_key,
         snakemake_run_id=snakemake.params.snakemake_run_id
     )
+
+    # Ensure the token file is created even if the LabKey upload is skipped
+    with open(snakemake.output.token, 'w') as token_file:
+        token_file.write('Completed')
+    print(f"Token file created at: {snakemake.output.token}", file=sys.stderr)

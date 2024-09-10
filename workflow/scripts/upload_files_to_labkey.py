@@ -45,7 +45,6 @@ def create_directory(url, auth):
         print(f"URLError: {e.reason} when creating directory at {url}")
         return False
 
-    
 def upload_file(local_path, remote_url, auth):
     with open(local_path, 'rb') as file:
         data = file.read()
@@ -73,6 +72,15 @@ def mask_config(config_path):
     return yaml.dump(config)
 
 def main(snakemake):
+    # Check if required LabKey/WebDAV parameters are provided
+    if not snakemake.params.webdav_url or not snakemake.params.username or not snakemake.params.password or not snakemake.params.labkey_server or not snakemake.params.project_name:
+        print("LabKey or WebDAV configuration missing or invalid. Skipping file upload.", file=sys.stderr)
+        
+        # Create done file to signal the rule has completed
+        with open(snakemake.output.done, 'w') as f:
+            f.write("Upload skipped due to missing or invalid configuration")
+        return
+    
     auth = (snakemake.params.username, snakemake.params.password)
     
     # Create the main experiment directory

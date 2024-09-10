@@ -52,6 +52,7 @@ rule all:
         local_output_dir=local_output_dir,
         sample=[s['name'].replace('-', '_') for s in config['samples']]
     )
+
 rule prepare_input:
     """
     This workflow expects FASTQ sequences
@@ -602,7 +603,7 @@ rule extract_unclassified_contigs:
 
 rule labkey_upload_blast:
     """
-    Uploads BLAST results to LabKey data explorer 
+    Uploads BLAST results to LabKey or saves to Excel if LabKey API is missing.
     """
     input:
         blast_results = f"{local_output_dir}/17_merge_annotated_blast_results/{{sample}}.txt",
@@ -618,8 +619,9 @@ rule labkey_upload_blast:
         snakemake_run_id = snakemake_run_id,
         labkey_server = config["global"]["labkey_server"],
         project_name = config["global"]["labkey_project_name"],
-        api_key = config["global"]["labkey_api_key"],
-        stat_db_version = config["global"]["stat_dbss"]
+        api_key = config["global"].get("labkey_api_key", ""),
+        stat_db_version = config["global"]["stat_dbss"],
+        out_dir = config["global"]["out_dir"]
     log:
         f"{log_dir}/19_labkey/{{sample}}.blast.log"
     benchmark:
@@ -629,7 +631,7 @@ rule labkey_upload_blast:
 
 rule labkey_upload_fasta:
     """
-    Uploads FASTA results to LabKey data explorer
+    Uploads FASTA results to LabKey or skips if API key is missing.
     """
     input:
         fasta = f"{local_output_dir}/09_extract_human_virus_contigs/{{sample}}.fa"
@@ -637,12 +639,12 @@ rule labkey_upload_fasta:
         token = touch(f"{local_output_dir}/19_labkey/{{sample}}.fasta.tkn")
     threads: 1
     log:
-        f"{log_dir}/19_labkey{{sample}}.fasta.log"
+        f"{log_dir}/19_labkey/{{sample}}.fasta.log"
     benchmark:
         f"{log_dir}/19_labkey/{{sample}}.fasta.txt"
     params:
         experiment = config["global"]["experiment"],
-        api_key = config["global"]["labkey_api_key"],
+        api_key = config["global"].get("labkey_api_key", ""),
         snakemake_run_id = snakemake_run_id,
         singleline_fasta_path = f"{local_output_dir}/19_labkey/{{sample}}.fasta"
     script:
@@ -733,9 +735,11 @@ rule upload_files_to_labkey:
     output:
         done = f"{local_output_dir}/19_labkey/{{sample}}.upload.done"
     params:
-        webdav_url = config["global"]["webdav_url"],
-        username = config["global"]["labkey_username"],
-        password = config["global"]["labkey_password"],
+        webdav_url = config["global"].get("webdav_url", ""),
+        username = config["global"].get("labkey_username", ""),
+        password = config["global"].get("labkey_password", ""),
+        labkey_server = config["global"].get("labkey_server", ""),
+        project_name = config["global"].get("labkey_project_name", ""),
         experiment = config["global"]["experiment"],
         snakemake_run_id = snakemake_run_id,
         final_output_path = config["global"]["out_dir"]

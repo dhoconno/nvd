@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script to upload classified contig information to LabKey.
+Script to upload classified contig information to LabKey or save to Excel if LabKey API is missing.
 """
 
 import sys
@@ -10,9 +10,9 @@ from labkey.api_wrapper import APIWrapper
 from labkey.exceptions import ServerContextError, RequestError
 import os
 
-def insert_blast_results(experiment, blast_results, mapped_reads_file, stat_db_version, sample_name, blast_db_name, snakemake_run_id, labkey_server, project_name, api_key):
+def insert_blast_results(experiment, blast_results, mapped_reads_file, stat_db_version, sample_name, blast_db_name, snakemake_run_id, labkey_server, project_name, api_key, out_dir, token_file):
     """
-    Insert records into LabKey.
+    Insert records into LabKey or save to Excel if API key is missing.
     """
     try:
         # Check if the blast_results file is empty
@@ -41,9 +41,7 @@ def insert_blast_results(experiment, blast_results, mapped_reads_file, stat_db_v
         
         for r in df.itertuples(index=False):
             try:
-                # Normalize qseqid by stripping any leading/trailing whitespace and converting to a consistent format
-                normalized_qseqid = r.qseqid.strip()  # Adjust as necessary for your data
-                # For debugging: print the qseqid and its corresponding mapped_reads value
+                normalized_qseqid = r.qseqid.strip()  # Normalize qseqid
                 mapped_reads_value = mapped_reads_dict.get(normalized_qseqid, 0)
                 if mapped_reads_value == 0:
                     print(f"Warning: No mapped reads found for qseqid '{normalized_qseqid}'", file=sys.stderr)
@@ -52,7 +50,7 @@ def insert_blast_results(experiment, blast_results, mapped_reads_file, stat_db_v
                     'experiment': str(experiment),
                     'blast_task': str(r.task),
                     'sample_id': str(r.sample),
-                    'qseqid': normalized_qseqid,  # Use the normalized qseqid
+                    'qseqid': normalized_qseqid,  
                     'qlen': int(r.qlen),
                     'sseqid': str(r.sseqid),
                     'stitle': str(r.stitle),
@@ -64,7 +62,7 @@ def insert_blast_results(experiment, blast_results, mapped_reads_file, stat_db_v
                     'sscinames': str(r.sscinames),
                     'blast_db_version': str(blast_db_name),
                     'snakemake_run_id': str(snakemake_run_id),
-                    'mapped_reads': mapped_reads_value,  # Use the normalized mapped_reads value
+                    'mapped_reads': mapped_reads_value,
                     'stat_db_version': str(stat_db_version)
                 }
                 blast_rows.append(blast_row)
@@ -75,23 +73,29 @@ def insert_blast_results(experiment, blast_results, mapped_reads_file, stat_db_v
                 print(f"ValueError for row: {r}", file=sys.stderr)
                 print(f"Error details: {str(e)}", file=sys.stderr)
 
-        # Break apart blast_rows into smaller chunks of 1000 rows each
-        blast_row_chunks = list(more_itertools.chunked(blast_rows, 1000))
-        
-        api = APIWrapper(labkey_server, project_name, api_key=api_key, use_ssl=True)
+        # If API key is missing or empty, write to Excel instead of uploading
+        if not api_key:
+            output_excel_file = os.path.join(out_dir, f"{sample_name}.xlsx")
+            pd.DataFrame(blast_rows).to_excel(output_excel_file, index=False)
+            print(f"Results saved to Excel: {output_excel_file}", file=sys.stderr)
+        else:
+            # Insert into LabKey if API key is present
+            blast_row_chunks = list(more_itertools.chunked(blast_rows, 1000))
+            api = APIWrapper(labkey_server, project_name, api_key=api_key, use_ssl=True)
+            for counter, chunk in enumerate(blast_row_chunks):
+                try:
+                    api.query.insert_rows(schema_name='lists', query_name='metagenomic_hits', rows=chunk)
+                    number_processed = (counter + 1) * len(chunk)
+                    print(f"{number_processed} BLAST output rows added for sample {sample_name}", file=sys.stderr)
+                except (ServerContextError, RequestError) as e:
+                    print(f"Error inserting chunk {counter+1}: {str(e)}", file=sys.stderr)
+                    print(f"Server response: {e.response.text if hasattr(e, 'response') else 'No response text'}", file=sys.stderr)
+                    print(f"Continuing with next chunk...", file=sys.stderr)
 
-        for counter, chunk in enumerate(blast_row_chunks):
-            try:
-                # Insert rows into LabKey
-                api.query.insert_rows(schema_name='lists', query_name='metagenomic_hits', rows=chunk)
-                
-                # Print updates as rows processed
-                number_processed = (counter + 1) * len(chunk)
-                print(f"{number_processed} BLAST output rows added for sample {sample_name}", file=sys.stderr)
-            except (ServerContextError, RequestError) as e:
-                print(f"Error inserting chunk {counter+1}: {str(e)}", file=sys.stderr)
-                print(f"Server response: {e.response.text if hasattr(e, 'response') else 'No response text'}", file=sys.stderr)
-                print(f"Continuing with next chunk...", file=sys.stderr)
+        # Create the token file to signal completion
+        with open(token_file, 'w') as f:
+            f.write('Completed')
+        print(f"Token file created at: {token_file}", file=sys.stderr)
 
     except Exception as e:
         print(f"Error in insert_blast_results: {str(e)}", file=sys.stderr)
@@ -101,12 +105,14 @@ if __name__ == "__main__":
     insert_blast_results(
         experiment=snakemake.params.experiment,
         blast_results=snakemake.input.blast_results,
-        mapped_reads_file=snakemake.input.mapped_reads,  # Pass the mapped reads file
-        stat_db_version=snakemake.params.stat_db_version,  # Pass the stat_db_version parameter
+        mapped_reads_file=snakemake.input.mapped_reads,
+        stat_db_version=snakemake.params.stat_db_version,
         sample_name=snakemake.wildcards.sample,
         blast_db_name=snakemake.params.blast_db_name,
         snakemake_run_id=snakemake.params.snakemake_run_id,
         labkey_server=snakemake.params.labkey_server,
         project_name=snakemake.params.project_name,
-        api_key=snakemake.params.api_key
+        api_key=snakemake.params.api_key,
+        out_dir=snakemake.params.out_dir,
+        token_file=snakemake.output.token
     )
