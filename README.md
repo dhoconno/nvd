@@ -25,7 +25,7 @@
 ## About NVD
 ![NVD flowchart](nvd_flow.png)
 
-NVD is an opinionated workflow for identifying and exploring metagenomes for families of viruses that infect humans. It is opinionated in that it focuses narrowly on these virus families to the exclusion of other potentially interesting viral and non-viral microbial taxa. NVD works with arbitrarily large Oxford Nanopore and Illumina datasets without downsampling. The results are available in a LabKey Server data explorer available to O'Connor lab users and collaborators.
+NVD is an opinionated workflow for identifying and exploring metagenomes for families of viruses that infect humans. It is opinionated in that it focuses narrowly on these virus families to the exclusion of other potentially interesting viral and non-viral microbial taxa. NVD works with arbitrarily large Oxford Nanopore and Illumina datasets without downsampling. The results are available in a LabKey Server data explorer available to O'Connor lab users and collaborators. For those without LabKey data explorer access, results are stored locally.
 
 ### Why Another Metagenomic Workflow?
 
@@ -202,6 +202,20 @@ NVD is implemented as a snakemake workflow. It is designed to be run from within
 snakemake --cores XX --config run_id=`date +%s`
 ```
 Note that `run_id` does not have to be a timestamp as shown in the example above, but it should be something that unambiguously differentiates different runs of the workflow.
+
+The workflow should run to completion, with output saved to the location specified in `config.yaml['global']['out_dir']`. The output includes a CSV file describing the top five BLAST hits for each of the viral contigs. Be suspicious of hits with relatively high BLAST [evalues](https://blast.ncbi.nlm.nih.gov/doc/blast-help/FAQ.html) or those where only one or a few of the top hits are specific to a virus. There is also a `.zst` archive containing putative viral reads mapped against the de novo assembled contigs. The archive can be decompressed within the Apptainer/Docker container using:
+
+```sh
+unzstd [archive_name]
+```
+
+By default, all intermediate files are saved in case there is a problem with the workflow. After the workflow is run successfully, these files can be automatically removed with:
+
+```sh
+snakemake clean --cores XX --config run_id=`date +%s`
+```
+
+Use this carefully, since regenerating the `results` directory would require re-running the entire workflow.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
