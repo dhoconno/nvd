@@ -200,26 +200,19 @@ NVD is implemented as a snakemake workflow. It is designed to be run from a work
 ```sh
 snakemake --cores XX --config run_id=`date +%s`
 ```
-
-Note that the run_id does not have to be a timestamp, but it should be something that unambiguously differentiates different runs of the workflow.
+Note that `run_id` does not have to be a timestamp as shown in the example above, but it should be something that unambiguously differentiates different runs of the workflow.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- ROADMAP -->
 ## Roadmap
 
-- [ ] Feature 1
-- [ ] Feature 2
-- [ ] Feature 3
-    - [ ] Nested Feature
+- 2024-09-10 - first public release version
+- I expect to update the databases approximately annually to incorporate newly discovered virus sequences
 
-See the [open issues](https://github.com/github_username/repo_name/issues) for a full list of proposed features (and known issues).
+See the [open issues](https://github.com/dhoconno/nvd/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- CONTRIBUTING -->
 ## Contributing
@@ -239,43 +232,36 @@ Don't forget to give the project a star! Thanks again!
 
 ### Top contributors:
 
-<a href="https://github.com/github_username/repo_name/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=github_username/repo_name" alt="contrib.rocks image" />
+<a href="https://github.com/dhoconno/nvd/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=dhoconno/nvd" alt="contrib.rocks image" />
 </a>
-
-
 
 <!-- LICENSE -->
 ## License
 
-Distributed under the MIT License. See `LICENSE.txt` for more information.
+See `LICENSE.txt` for more information.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- CONTACT -->
 ## Contact
 
-Your Name - [@twitter_handle](https://twitter.com/twitter_handle) - email@email_client.com
+Dave O'Connor - [@dho](https://twitter.com/dho) - dhoconno@wisc.edu
 
-Project Link: [https://github.com/github_username/repo_name](https://github.com/github_username/repo_name)
+Project Link: [https://github.com/dhoconno/nvd](https://github.com/dhoconno/nvd)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
 
-* []()
-* []()
-* []()
+* [Marc Johnson](https://medicine.missouri.edu/faculty/marc-johnson-phd) and [Shelby O'Connor](https://slo.pathology.wisc.edu), my partners in environmental monitoring innovation.
+* Kenneth Katz, NCBI, for developing NCBI STAT, maintaining pre-built databases for STAT, and helpful discusssions
+* [C. Titus Brown](https://www.vetmed.ucdavis.edu/faculty/c-titus-brown), for helpful discussions of using kmer classifiers as part of metagenomic workflows
+* Development funded by [Inkfish](https://ink.fish)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/github_username/repo_name.svg?style=for-the-badge
+[contributors-shield]: https://img.shields.io/github/contributors/dhoconno/nvd.svg?style=for-the-badge
