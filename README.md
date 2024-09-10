@@ -100,35 +100,31 @@ The `resources.20240830.zst` version contains `core-nt` downloaded from NCBI on 
 
 ### Linux Installation
 
-1. Clone the repo to the working directory and navigate into the working directory
-   
+1. Clone the repo to the working directory and navigate into the working directory  
    ```sh
    git clone https://github.com/dhoconno/nvd.git && cd nvd
    ```
-   
-3. Create a conda environment with Apptainer and Snakemake
-   
+2. Create a conda environment with Apptainer and Snakemake 
 	```
 	conda create -n nvd
 	conda activate nvd
 	conda install -y snakemake apptainer -c conda-forge
-	```
- 
-5. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/nvd.30572.sif)) the Apptainer image file. If you have Globus access, this link is much, much faster than the `wget` access command shown below:.
+	``` 
+3. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/nvd.30572.sif)) the Apptainer image file. If you have Globus access, this link is much, much faster than the `wget` access command shown below:.
    ```sh
    wget https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/nvd.30572.sif
    ```
-6. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/resources.20240830.zst) the `resources.zst` file containing databases and taxonomy files (note, this is ~230GB and will take a while to download. I suggest going out for an iced tea while you wait. If you have Globus access, this link is much, much faster than the `wget` access command shown below:
+4. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/resources.20240830.zst) the `resources.zst` file containing databases and taxonomy files (note, this is ~230GB and will take a while to download. I suggest going out for an iced tea while you wait. If you have Globus access, this link is much, much faster than the `wget` access command shown below:
    ```sh
    wget https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/resources.20240830.zst
    ```
-7. Decompress the `resources.zst` file in the working directory and remove source after decompression
+5. Decompress the `resources.zst` file in the working directory and remove source after decompression
    ```sh
    tar -I zstd -xvf resources.20240830.zst && rm resources.20240830.zst
    ```
-8. Copy gzipped-FASTQ files to process into `data` folder within the working directory.
-9. Modify the `config.yaml` file to specify the experiment number (an integer) and an output directory.
-10. Modify the `config.yaml` file to specify the samples to process and the path(s) to their FASTQ files. Here are example entries for the three supported file types:
+6. Copy gzipped-FASTQ files to process into `data` folder within the working directory.
+7. Modify the `config.yaml` file to specify the experiment number (an integer) and an output directory.
+8. Modify the `config.yaml` file to specify the samples to process and the path(s) to their FASTQ files. Here are example entries for the three supported file types:
    ```
    - name: Illumina_test
     r1_fastq: data/illumina.R1.fastq.gz
@@ -140,7 +136,7 @@ The `resources.20240830.zst` version contains `core-nt` downloaded from NCBI on 
    ```
    Many samples can be processed in the same workflow invokation. Multiple sample types can be processed at once. There is also a version of this workflow that runs one sample at a time on [CHTC](https://chtc.cs.wisc.edu) execute nodes. Ask DHO for details. 
    (note: if you have access to upload results to the LabKey data explorer, you will also need to add LabKey credentials to the `config.yaml` file. Ask DHO for details.)
-11. Start an Apptainer shell in the working directory with the repo files
+9. Start an Apptainer shell in the working directory with the repo files
    ```
    apptainer shell nvd.30572.sif
    ```
