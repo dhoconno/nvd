@@ -98,7 +98,7 @@ NVD is written in Snakemake and has its dependencies bundled in an Apptainer con
 
 ### Linux Installation
 
-1. Create a conda environment with Apptainer and Snakemake (Linux)
+1. Create a conda environment with Apptainer and Snakemake
 	```
 	conda create -n nvd
 	conda activate nvd
@@ -142,7 +142,7 @@ After installation, there should be `data`, `config`, `resources`, and `workflow
 ### MacOS installation
 
 1. Download and install Docker Desktop. Provide at least 32GB of memory to Docker containers.
-2. Create a conda environment with Snakemake (Linux)
+2. Create a conda environment with Snakemake
 	```
 	conda create -n nvd
 	conda activate nvd
