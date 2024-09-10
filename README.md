@@ -123,11 +123,11 @@ NVD is written in Snakemake and has its dependencies bundled in an Apptainer con
 6. Copy gzipped-FASTQ files to process into `data` folder within the working directory.
 7. Modify the `config.yaml` file to specify the samples to process and the path(s) to their FASTQ files. Here are example entries for the three supported file types:
    ```
-   - name: water_S80_
-    r1_fastq: data/water_S80_L006_R1_001.fastq.gz
-    r2_fastq: data/water_S80_L006_R2_001.fastq.gz
-   - name: AE0000100C7A40
-    sra: SRR24010780
+   - name: Illumina_test
+    r1_fastq: data/illumina.R1.fastq.gz
+    r2_fastq: data/illumina.R2.fastq.gz
+   - name: AE0000100A9532
+    sra: SRR24010792
    - name: AE0000100A8B3C
     ont: data/AE0000100A8B3C.fastq.gz
    ```
