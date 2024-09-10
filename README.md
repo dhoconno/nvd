@@ -102,22 +102,28 @@ NVD is written in Snakemake and has its dependencies bundled in an Apptainer con
 	conda activate nvd
 	conda install -y snakemake apptainer -c conda-forge
 	```
-2. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/nvd_30572.sif) the Apptainer image file.
-3. Clone the repo to the working directory
+2. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/nvd_30572.sif) the Apptainer image file
+   ```
+   wget https://g-2e5b4e.dtn.globus.wisc.edu/nvd/nvd_30572.sif
+   ```
+4. Clone the repo to the working directory
    ```sh
    git clone https://github.com/dhoconno/nvd.git
    ```
-4. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/resources.zst) the `resources.zst` file containing databases and taxonomy files
-5. Start an Apptainer shell in the working directory with the repo files
+5. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/resources.zst) the `resources.zst` file containing databases and taxonomy files
+   ```
+   wget https://g-2e5b4e.dtn.globus.wisc.edu/nvd/resources.zst
+   ```
+7. Start an Apptainer shell in the working directory with the repo files
    ```
    apptainer shell nvd_30572.sif
    ```
-6. Decompress the `resources.zst` file in the working directory
+8. Decompress the `resources.zst` file in the working directory
    ```
    tar -I zstd -xvf resources.zst
    ```
-7. Copy gzipped-FASTQ files to process into `data` folder within the working directory.
-8. Modify the `config.yaml` file to specify the samples to process and the path(s) to their FASTQ files. Here are example entries for the three supported file types:
+9. Copy gzipped-FASTQ files to process into `data` folder within the working directory.
+10. Modify the `config.yaml` file to specify the samples to process and the path(s) to their FASTQ files. Here are example entries for the three supported file types:
    ```
    - name: water_S80_
     r1_fastq: data/water_S80_L006_R1_001.fastq.gz
