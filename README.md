@@ -196,7 +196,7 @@ After installation, there should be `data`, `config`, `resources`, and `workflow
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-NVD is implemented as a snakemake workflow. It is designed to be run from a working directory as described above. There is one mandatory config parameter, `run_id` that must be specified upon invokation:
+NVD is implemented as a snakemake workflow. It is designed to be run from within an Apptainer/Docker container as described above. There is one mandatory config parameter, `run_id` that must be specified upon invokation:
 
 ```sh
 snakemake --cores XX --config run_id=`date +%s`
