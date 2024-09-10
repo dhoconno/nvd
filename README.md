@@ -29,7 +29,7 @@ NVD is an opinionated workflow for identifying and exploring metagenomes for fam
 
 ### Why Another Metagenomic Workflow?
 
-Good question. When I started working on NVD in June 2024, I hoped to find a widely used, easy-to-use workflow optimized for viral metagenomics. CZID is excellent, but downsamples to a subset of reads. Sometimes this isn't a problem; sometimes it causes substantial reductions in sensitivity. The outstanding Sourmash tool performs informative, efficient searches against reference databases but doesn't generate contigs that can be used to characterize interesting viruses.
+Good question. When I started working on NVD in June 2024, I hoped to find a widely used, easy-to-use workflow optimized for viral metagenomics. [CZID](https://czid.org) is excellent, but downsamples to a subset of reads. Sometimes this isn't a problem; sometimes it causes substantial reductions in sensitivity. The outstanding [Sourmash](https://github.com/sourmash-bio/sourmash) tools perform informative, efficient searches against reference databases but do not generate contigs that can be used to characterize interesting viruses.
 
 ### What Does NVD Do?
 
