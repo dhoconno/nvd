@@ -104,11 +104,11 @@ NVD is written in Snakemake and has its dependencies bundled in an Apptainer con
 	conda activate nvd
 	conda install -y snakemake apptainer -c conda-forge
 	```
-2. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/nvd.30572.sif)) the Apptainer image file. If you have Globus access, this link is much, much faster than the `wget` access command.
+2. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/nvd.30572.sif)) the Apptainer image file. If you have Globus access, this link is much, much faster than the `wget` access command shown below:.
    ```sh
    wget https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/nvd.30572.sif
    ```
-3. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/resources.20240830.zst) the `resources.zst` file containing databases and taxonomy files (note, this is ~230GB and will take a while to download. I suggest going out for an iced tea while you wait. If you have Globus access, this link is much, much faster than the `wget` access command.
+3. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/resources.20240830.zst) the `resources.zst` file containing databases and taxonomy files (note, this is ~230GB and will take a while to download. I suggest going out for an iced tea while you wait. If you have Globus access, this link is much, much faster than the `wget` access command shown below:.
    ```sh
    wget https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/resources.20240830.zst
    ```
@@ -147,7 +147,7 @@ After installation, there should be `data`, `config`, `resources`, and `workflow
 	conda activate nvd
 	conda install -y snakemake -c conda-forge
 	```
-3. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/nvd.30572.tar) the Docker image file. If you have Globus access, this link is much, much faster than the `wget` access command.
+3. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/nvd.30572.tar) the Docker image file. If you have Globus access, this link is much, much faster than the `wget` access command shown below:
    ```sh
    wget https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/nvd.30572.tar
    ```
@@ -155,7 +155,7 @@ After installation, there should be `data`, `config`, `resources`, and `workflow
    ```sh
    docker load -i docker/nvd.tar
    ```
-4. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/resources.20240830.zst) the `resources.zst` file containing databases and taxonomy files (note, this is ~230GB and will take a while to download. I suggest going out for an iced tea while you wait. If you have Globus access, this link is much, much faster than the `wget` access command.
+4. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/resources.20240830.zst) the `resources.zst` file containing databases and taxonomy files (note, this is ~230GB and will take a while to download. I suggest going out for an iced tea while you wait. If you have Globus access, this link is much, much faster than the `wget` access command shown below:
    ```sh
    wget https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/resources.20240830.zst
    ```
