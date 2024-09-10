@@ -8,9 +8,9 @@ global:
   human_virus_taxlist: 'resources/human_viruses_taxlist.txt'
   out_dir: /staging/groups/oconnor_group/30594/output
   gettax_sqlite_path: resources/gettax.sqlite
-  labkey_server: 
-  labkey_project_name:
-  labkey_api_key: 
-  labkey_username: 
-  labkey_password: 
-  webdav_url: 
+samples:
+- name: Illumina_test
+  r1_fastq: data/illumina.R1.fq.gz
+  r2_fastq: data/illumina.R2.fq.gz
+- name: AE0000100A9532
+  sra: SRR24010792
