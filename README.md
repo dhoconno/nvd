@@ -33,7 +33,7 @@ Good question. When I started working on NVD in June 2024, I hoped to find a wid
 
 ### What Does NVD Do?
 
-NVD begins with one or more Illumina paired-end or Oxford Nanopore datasets. It can also evaluate datasets on NCBI SRA. The file integrity of these reads is checked and, in the case of Illumina datasets, paired-end sequences are interleaved and properly paired using the bbmap `repair.sh` tool.
+NVD begins with one or more Illumina paired-end or Oxford Nanopore datasets. It can also evaluate datasets downloaded from NCBI SRA. In the case of Illumina datasets, paired-end sequences are interleaved and properly paired using the bbmap `repair.sh` tool before processing.
 
 These reads are the classified with the NCBI STAT tool, specifically the `aligns_to` command. A tax list containing the entire subtree of the virus families that infect humans is used for classification. This means that NVD is designed to find members of these virus families:
 
