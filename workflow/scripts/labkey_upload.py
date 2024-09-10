@@ -73,11 +73,15 @@ def insert_blast_results(experiment, blast_results, mapped_reads_file, stat_db_v
                 print(f"ValueError for row: {r}", file=sys.stderr)
                 print(f"Error details: {str(e)}", file=sys.stderr)
 
-        # If API key is missing or empty, write to Excel instead of uploading
+        # If API key is missing or empty, write to CSV instead of uploading
         if not api_key:
-            output_excel_file = os.path.join(out_dir, f"{sample_name}.xlsx")
-            pd.DataFrame(blast_rows).to_excel(output_excel_file, index=False)
-            print(f"Results saved to Excel: {output_excel_file}", file=sys.stderr)
+            # Create the output directory if it doesn't exist
+            if not os.path.exists(out_dir):
+                os.makedirs(out_dir, exist_ok=True)
+            
+            output_csv_file = os.path.join(out_dir, f"{sample_name}.csv")
+            pd.DataFrame(blast_rows).to_csv(output_csv_file, index=False)
+            print(f"Results saved to CSV: {output_csv_file}", file=sys.stderr)
         else:
             # Insert into LabKey if API key is present
             blast_row_chunks = list(more_itertools.chunked(blast_rows, 1000))
