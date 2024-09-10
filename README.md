@@ -90,7 +90,7 @@ NVD is written in Snakemake and has its dependencies bundled in an Apptainer con
 - [Miniconda](https://docs.anaconda.com/miniconda/miniconda-install/)
 - [Apptainer](https://apptainer.org/docs/admin/main/installation.html)
 - [Snakemake](https://snakemake.readthedocs.io/en/stable/)
-- The `resources.zst` archive containing NCBI BLAST `core-nt`, NCBI STAT databases, a taxonomic rank database, and a taxonomic list of the subtree of human-infecting virus families. Get this from DHO.
+- The `resources.zst` archive containing NCBI BLAST `core-nt`, NCBI STAT databases, a taxonomic rank database, and a taxonomic list of the subtree of human-infecting virus families. The `resources.20240830.zst` version contains `core-nt` downloaded from NCBI on 2024-08-03, the STAT tree index downloaded 2024-08-30, the STAT tree filter.dbss and associated annotations downloaded 2024-08-30, `gettax.sqlite` downloaded on 2024-08-30, and a `human_viruses_taxlist.txt` created on 2024-09-05. 
 - The `workflow` folder containing the Snakemake workflow and associated python scripts
 - A `config` folder containing a `config.yaml` file specifying runtime variables and the samples to be analyzed. You also need to get the LabKey API Key, LabKey username, and LabKey password information from DHO for LabKey integration.
 
@@ -102,28 +102,24 @@ NVD is written in Snakemake and has its dependencies bundled in an Apptainer con
 	conda activate nvd
 	conda install -y snakemake apptainer -c conda-forge
 	```
-2. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/nvd_30572.sif) the Apptainer image file
+2. [Download](https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/nvd_30572.sif) the Apptainer image file
+   ```sh
+   wget https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/nvd_30572.sif
    ```
-   wget https://g-2e5b4e.dtn.globus.wisc.edu/nvd/nvd_30572.sif
+3. [Download](https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/resources.20240830.zst) the `resources.zst` file containing databases and taxonomy files (note, this is ~230GB and will take a while to download. I suggest going out for an iced tea while you wait.
+   ```sh
+   wget https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/resources.20240830.zst
    ```
-4. Clone the repo to the working directory
+4. Decompress the `resources.zst` file in the working directory and remove source after decompression
+   ```sh
+   tar -I zstd -xvf resources.20240830.zst && rm resources.20240830.zst
+   ```
+5. Clone the repo to the working directory
    ```sh
    git clone https://github.com/dhoconno/nvd.git
    ```
-5. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/resources.zst) the `resources.zst` file containing databases and taxonomy files
-   ```
-   wget https://g-2e5b4e.dtn.globus.wisc.edu/nvd/resources.zst
-   ```
-7. Start an Apptainer shell in the working directory with the repo files
-   ```
-   apptainer shell nvd_30572.sif
-   ```
-8. Decompress the `resources.zst` file in the working directory
-   ```
-   tar -I zstd -xvf resources.zst
-   ```
-9. Copy gzipped-FASTQ files to process into `data` folder within the working directory.
-10. Modify the `config.yaml` file to specify the samples to process and the path(s) to their FASTQ files. Here are example entries for the three supported file types:
+6. Copy gzipped-FASTQ files to process into `data` folder within the working directory.
+7. Modify the `config.yaml` file to specify the samples to process and the path(s) to their FASTQ files. Here are example entries for the three supported file types:
    ```
    - name: water_S80_
     r1_fastq: data/water_S80_L006_R1_001.fastq.gz
@@ -132,6 +128,10 @@ NVD is written in Snakemake and has its dependencies bundled in an Apptainer con
     sra: SRR24010780
    - name: AE0000100A8B3C
     ont: data/AE0000100A8B3C.fastq.gz
+   ```
+8. Start an Apptainer shell in the working directory with the repo files
+   ```
+   apptainer shell nvd_30572.sif
    ```
 
 After installation, there should be `data`, `config`, `resources`, and `workflow` folders in the working directory.
