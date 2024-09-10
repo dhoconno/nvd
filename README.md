@@ -255,7 +255,7 @@ Project Link: [https://github.com/dhoconno/nvd](https://github.com/dhoconno/nvd)
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
 
-* [Marc Johnson](https://medicine.missouri.edu/faculty/marc-johnson-phd) and [Shelby O'Connor](https://slo.pathology.wisc.edu), my partners in environmental monitoring innovation.
+* [Marc Johnson](https://medicine.missouri.edu/faculty/marc-johnson-phd) and [Shelby O'Connor](https://slo.pathology.wisc.edu), my partners in innovative pathogen monitoring from environmental samples.
 * Kenneth Katz, NCBI, for developing NCBI STAT, maintaining pre-built databases for STAT, and helpful discusssions
 * [C. Titus Brown](https://www.vetmed.ucdavis.edu/faculty/c-titus-brown), for helpful discussions of using kmer classifiers as part of metagenomic workflows
 * Development funded by [Inkfish](https://ink.fish)
