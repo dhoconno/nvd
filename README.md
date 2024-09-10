@@ -93,6 +93,7 @@ NVD is written in Snakemake and has its dependencies bundled in an Apptainer con
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for MacOS)
 - [Snakemake](https://snakemake.readthedocs.io/en/stable/)
 - The `resources.zst` archive containing NCBI BLAST `core-nt`, NCBI STAT databases, a taxonomic rank database, and a taxonomic list of the subtree of human-infecting virus families.
+
 The `resources.20240830.zst` version contains `core-nt` downloaded from NCBI on 2024-08-03, the STAT tree index downloaded 2024-08-30, the STAT tree filter.dbss and associated annotations downloaded 2024-08-30, `gettax.sqlite` downloaded on 2024-08-30, and a `human_viruses_taxlist.txt` created on 2024-09-05. 
 - The `workflow` folder containing the Snakemake workflow and associated python scripts
 - A `config` folder containing a `config.yaml` file specifying runtime variables and the samples to be analyzed. You also need to get the LabKey API Key, LabKey username, and LabKey password information from DHO for LabKey integration.
