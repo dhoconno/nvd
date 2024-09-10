@@ -131,9 +131,10 @@ NVD is written in Snakemake and has its dependencies bundled in an Apptainer con
    - name: AE0000100A8B3C
     ont: data/AE0000100A8B3C.fastq.gz
    ```
+   (note: if you have access to upload results to the LabKey data explorer, you will also need to add LabKey credentials to the `config.yaml` file. Ask DHO for details.)
 8. Start an Apptainer shell in the working directory with the repo files
    ```
-   apptainer shell nvd_30572.sif
+   apptainer shell nvd.30572.sif
    ```
 
 After installation, there should be `data`, `config`, `resources`, and `workflow` folders in the working directory.
@@ -155,30 +156,31 @@ After installation, there should be `data`, `config`, `resources`, and `workflow
    ```sh
    docker load -i docker/nvd.tar
    ```
-4. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/resources.20240830.zst) the `resources.zst` file containing databases and taxonomy files (note, this is ~230GB and will take a while to download. I suggest going out for an iced tea while you wait. If you have Globus access, this link is much, much faster than the `wget` access command shown below:
+5. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/resources.20240830.zst) the `resources.zst` file containing databases and taxonomy files (note, this is ~230GB and will take a while to download. I suggest going out for an iced tea while you wait. If you have Globus access, this link is much, much faster than the `wget` access command shown below:
    ```sh
    wget https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/resources.20240830.zst
    ```
-5. Decompress the `resources.zst` file in the working directory and remove source after decompression
+6. Decompress the `resources.zst` file in the working directory and remove source after decompression
    ```sh
    tar -I zstd -xvf resources.20240830.zst && rm resources.20240830.zst
    ```
-6. Clone the repo to the working directory
+7. Clone the repo to the working directory
    ```sh
    git clone https://github.com/dhoconno/nvd.git
    ```
-7. Copy gzipped-FASTQ files to process into `data` folder within the working directory.
-8. Modify the `config.yaml` file to specify the samples to process and the path(s) to their FASTQ files. Here are example entries for the three supported file types:
+8. Copy gzipped-FASTQ files to process into `data` folder within the working directory.
+9. Modify the `config.yaml` file to specify the samples to process and the path(s) to their FASTQ files. Here are example entries for the three supported file types:
    ```
-   - name: water_S80_
-    r1_fastq: data/water_S80_L006_R1_001.fastq.gz
-    r2_fastq: data/water_S80_L006_R2_001.fastq.gz
-   - name: AE0000100C7A40
-    sra: SRR24010780
+   - name: Illumina_test
+    r1_fastq: data/illumina.R1.fastq.gz
+    r2_fastq: data/illumina.R2.fastq.gz
+   - name: AE0000100A9532
+    sra: SRR24010792
    - name: AE0000100A8B3C
     ont: data/AE0000100A8B3C.fastq.gz
    ```
-9. Start a Docker shell in the working directory with the repo files
+   (note: if you have access to upload results to the LabKey data explorer, you will also need to add LabKey credentials to the `config.yaml` file. Ask DHO for details.)
+10. Start a Docker shell in the working directory with the repo files
    ```
    docker run -it --user $(id -u):$(id -g) -v $(pwd)/:/scratch -w /scratch nvd:30575
    ```
@@ -189,9 +191,13 @@ After installation, there should be `data`, `config`, `resources`, and `workflow
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
+NVD is implemented as a snakemake workflow. It is designed to be run from a working directory as described above. There is one mandatory config parameter, `run_id` that must be specified upon invokation:
 
-_For more examples, please refer to the [Documentation](https://example.com)_
+```sh
+snakemake --cores XX --config run_id=`date +%s`
+```
+
+Note that the run_id does not have to be a timestamp, but it should be something that unambiguously differentiates different runs of the workflow.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
