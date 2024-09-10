@@ -88,13 +88,14 @@ NVD is written in Snakemake and has its dependencies bundled in an Apptainer con
 ### Prerequisites
 
 - [Miniconda](https://docs.anaconda.com/miniconda/miniconda-install/)
-- [Apptainer](https://apptainer.org/docs/admin/main/installation.html)
+- [Apptainer](https://apptainer.org/docs/admin/main/installation.html) (for Linux)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for MacOS)
 - [Snakemake](https://snakemake.readthedocs.io/en/stable/)
 - The `resources.zst` archive containing NCBI BLAST `core-nt`, NCBI STAT databases, a taxonomic rank database, and a taxonomic list of the subtree of human-infecting virus families. The `resources.20240830.zst` version contains `core-nt` downloaded from NCBI on 2024-08-03, the STAT tree index downloaded 2024-08-30, the STAT tree filter.dbss and associated annotations downloaded 2024-08-30, `gettax.sqlite` downloaded on 2024-08-30, and a `human_viruses_taxlist.txt` created on 2024-09-05. 
 - The `workflow` folder containing the Snakemake workflow and associated python scripts
 - A `config` folder containing a `config.yaml` file specifying runtime variables and the samples to be analyzed. You also need to get the LabKey API Key, LabKey username, and LabKey password information from DHO for LabKey integration.
 
-### Installation
+### Linux Installation
 
 1. Create a conda environment with Apptainer and Snakemake (Linux)
 	```
@@ -102,9 +103,9 @@ NVD is written in Snakemake and has its dependencies bundled in an Apptainer con
 	conda activate nvd
 	conda install -y snakemake apptainer -c conda-forge
 	```
-2. [Download](https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/nvd_30572.sif) the Apptainer image file
+2. [Download](https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/nvd.30572.sif) the Apptainer image file
    ```sh
-   wget https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/nvd_30572.sif
+   wget https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/nvd.30572.sif
    ```
 3. [Download](https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/resources.20240830.zst) the `resources.zst` file containing databases and taxonomy files (note, this is ~230GB and will take a while to download. I suggest going out for an iced tea while you wait.
    ```sh
@@ -132,6 +133,53 @@ NVD is written in Snakemake and has its dependencies bundled in an Apptainer con
 8. Start an Apptainer shell in the working directory with the repo files
    ```
    apptainer shell nvd_30572.sif
+   ```
+
+After installation, there should be `data`, `config`, `resources`, and `workflow` folders in the working directory.
+
+### MacOS installation
+
+1. Download and install Docker Desktop. Provide at least 32GB of memory to Docker containers.
+2. Create a conda environment with Snakemake (Linux)
+	```
+	conda create -n nvd
+	conda activate nvd
+	conda install -y snakemake -c conda-forge
+	```
+3. [Download](https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/nvd.30572.tar) the Docker image file
+   ```sh
+   wget https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/nvd.30572.tar
+   ```
+4. Load the Docker image file
+   ```sh
+   docker load -i docker/nvd.tar
+   ```
+4. [Download](https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/resources.20240830.zst) the `resources.zst` file containing databases and taxonomy files (note, this is ~230GB and will take a while to download. I suggest going out for an iced tea while you wait.
+   ```sh
+   wget https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/resources.20240830.zst
+   ```
+5. Decompress the `resources.zst` file in the working directory and remove source after decompression
+   ```sh
+   tar -I zstd -xvf resources.20240830.zst && rm resources.20240830.zst
+   ```
+6. Clone the repo to the working directory
+   ```sh
+   git clone https://github.com/dhoconno/nvd.git
+   ```
+7. Copy gzipped-FASTQ files to process into `data` folder within the working directory.
+8. Modify the `config.yaml` file to specify the samples to process and the path(s) to their FASTQ files. Here are example entries for the three supported file types:
+   ```
+   - name: water_S80_
+    r1_fastq: data/water_S80_L006_R1_001.fastq.gz
+    r2_fastq: data/water_S80_L006_R2_001.fastq.gz
+   - name: AE0000100C7A40
+    sra: SRR24010780
+   - name: AE0000100A8B3C
+    ont: data/AE0000100A8B3C.fastq.gz
+   ```
+9. Start a Docker shell in the working directory with the repo files
+   ```
+   docker run -it --user $(id -u):$(id -g) -v $(pwd)/:/scratch -w /scratch nvd:30575
    ```
 
 After installation, there should be `data`, `config`, `resources`, and `workflow` folders in the working directory.
