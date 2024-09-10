@@ -72,51 +72,44 @@ def mask_config(config_path):
     return yaml.dump(config)
 
 def main(snakemake):
-    # Check if required LabKey/WebDAV parameters are provided
-    if not snakemake.params.webdav_url or not snakemake.params.username or not snakemake.params.password or not snakemake.params.labkey_server or not snakemake.params.project_name:
-        print("LabKey or WebDAV configuration missing or invalid. Skipping file upload.", file=sys.stderr)
-        
-        # Create done file to signal the rule has completed
-        with open(snakemake.output.done, 'w') as f:
-            f.write("Upload skipped due to missing or invalid configuration")
-        return
-    
     auth = (snakemake.params.username, snakemake.params.password)
     
-    # Create the main experiment directory
-    main_dir = urllib.parse.urljoin(snakemake.params.webdav_url, f"{snakemake.params.experiment}/")
-    if not create_directory(main_dir, auth):
-        raise Exception(f"Failed to create main directory: {main_dir}")
-    
-    # Create the run ID subdirectory
-    run_dir = urllib.parse.urljoin(main_dir, f"{snakemake.params.snakemake_run_id}/")
-    if not create_directory(run_dir, auth):
-        raise Exception(f"Failed to create run directory: {run_dir}")
-    
-    # Upload tarball
-    remote_tarball_path = urllib.parse.urljoin(run_dir, f"{snakemake.wildcards.sample}.tar.zst")
-    if not upload_file(snakemake.input.tarball, remote_tarball_path, auth):
-        print(f"Failed to upload {snakemake.wildcards.sample}.tar.zst")
-    
-    # Upload masked config.yaml
-    masked_config = mask_config(snakemake.input.config_file)
-    remote_config_path = urllib.parse.urljoin(run_dir, "config.yaml")
-    req = urllib.request.Request(remote_config_path, data=masked_config.encode(), method='PUT')
-    req.add_header('Authorization', 'Basic ' + base64.b64encode(f"{auth[0]}:{auth[1]}".encode()).decode())
-    try:
-        with urllib.request.urlopen(req) as response:
-            if response.getcode() not in (201, 204):
-                print("Failed to upload masked config.yaml")
-    except urllib.error.HTTPError:
-        print("Failed to upload masked config.yaml")
-    
-    # Copy results to CHTC staging server
-    os.system(f"mkdir -p {snakemake.params.final_output_path}/{snakemake.wildcards.sample}/{snakemake.params.snakemake_run_id}")
+    # Upload to LabKey/WebDAV if credentials are available
+    if snakemake.params.webdav_url and snakemake.params.username and snakemake.params.password and snakemake.params.labkey_server and snakemake.params.project_name:
+        # Create the main experiment directory
+        main_dir = urllib.parse.urljoin(snakemake.params.webdav_url, f"{snakemake.params.experiment}/")
+        if not create_directory(main_dir, auth):
+            raise Exception(f"Failed to create main directory: {main_dir}")
+        
+        # Create the run ID subdirectory
+        run_dir = urllib.parse.urljoin(main_dir, f"{snakemake.params.snakemake_run_id}/")
+        if not create_directory(run_dir, auth):
+            raise Exception(f"Failed to create run directory: {run_dir}")
+        
+        # Upload tarball
+        remote_tarball_path = urllib.parse.urljoin(run_dir, f"{snakemake.wildcards.sample}.tar.zst")
+        if not upload_file(snakemake.input.tarball, remote_tarball_path, auth):
+            print(f"Failed to upload {snakemake.wildcards.sample}.tar.zst")
+        
+        # Upload masked config.yaml
+        masked_config = mask_config(snakemake.input.config_file)
+        remote_config_path = urllib.parse.urljoin(run_dir, "config.yaml")
+        req = urllib.request.Request(remote_config_path, data=masked_config.encode(), method='PUT')
+        req.add_header('Authorization', 'Basic ' + base64.b64encode(f"{auth[0]}:{auth[1]}".encode()).decode())
+        try:
+            with urllib.request.urlopen(req) as response:
+                if response.getcode() not in (201, 204):
+                    print("Failed to upload masked config.yaml")
+        except urllib.error.HTTPError:
+            print("Failed to upload masked config.yaml")
+
+    # Ensure the tarball is always copied to final_output_path
+    os.makedirs(f"{snakemake.params.final_output_path}/{snakemake.wildcards.sample}/{snakemake.params.snakemake_run_id}", exist_ok=True)
     os.system(f"cp {snakemake.input.tarball} {snakemake.params.final_output_path}/{snakemake.wildcards.sample}/{snakemake.params.snakemake_run_id}/")
     
     # Create done file
     with open(snakemake.output.done, 'w') as f:
-        f.write("Upload completed")
+        f.write("Process completed")
 
 if __name__ == "__main__":
     main(snakemake)
