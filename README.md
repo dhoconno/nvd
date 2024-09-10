@@ -33,7 +33,7 @@ Good question. When I started working on NVD in June 2024, I hoped to find a wid
 
 ### What Does NVD Do?
 
-NVD begins with an Illumina paired-end or Oxford Nanopore dataset. It can also evaluate datasets on NCBI SRA. The file integrity of these reads is checked and, in the case of Illumina datasets, paired-end sequences are interleaved and properly paired using the bbmap `repair.sh` tool.
+NVD begins with one or more Illumina paired-end or Oxford Nanopore datasets. It can also evaluate datasets on NCBI SRA. The file integrity of these reads is checked and, in the case of Illumina datasets, paired-end sequences are interleaved and properly paired using the bbmap `repair.sh` tool.
 
 These reads are the classified with the NCBI STAT tool, specifically the `aligns_to` command. A tax list containing the entire subtree of the virus families that infect humans is used for classification. This means that NVD is designed to find members of these virus families:
 
@@ -131,6 +131,7 @@ NVD is written in Snakemake and has its dependencies bundled in an Apptainer con
    - name: AE0000100A8B3C
     ont: data/AE0000100A8B3C.fastq.gz
    ```
+   Many samples can be processed in the same workflow invokation. Multiple sample types can be processed at once. There is also a version of this workflow that runs one sample at a time on [CHTC](https://chtc.cs.wisc.edu) execute nodes. Ask DHO for details. 
    (note: if you have access to upload results to the LabKey data explorer, you will also need to add LabKey credentials to the `config.yaml` file. Ask DHO for details.)
 8. Start an Apptainer shell in the working directory with the repo files
    ```
@@ -179,8 +180,9 @@ After installation, there should be `data`, `config`, `resources`, and `workflow
    - name: AE0000100A8B3C
     ont: data/AE0000100A8B3C.fastq.gz
    ```
+   Many samples can be processed in the same workflow invokation. Multiple sample types can be processed at once. There is also a version of this workflow that runs one sample at a time on [CHTC](https://chtc.cs.wisc.edu) execute nodes. Ask DHO for details. 
    (note: if you have access to upload results to the LabKey data explorer, you will also need to add LabKey credentials to the `config.yaml` file. Ask DHO for details.)
-10. Start a Docker shell in the working directory with the repo files
+11. Start a Docker shell in the working directory with the repo files
    ```
    docker run -it --user $(id -u):$(id -g) -v $(pwd)/:/scratch -w /scratch nvd:30575
    ```
