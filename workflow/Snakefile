@@ -617,8 +617,8 @@ rule labkey_upload_blast:
         experiment = config["global"]["experiment"],
         blast_db_name = config["global"]["blast_db_name"],
         snakemake_run_id = snakemake_run_id,
-        labkey_server = config["global"]["labkey_server"],
-        project_name = config["global"]["labkey_project_name"],
+        labkey_server = config["global"].get("labkey_server", ""),
+        project_name = config["global"].get("labkey_project_name", ""),
         api_key = config["global"].get("labkey_api_key", ""),
         stat_db_version = config["global"]["stat_dbss"],
         out_dir = config["global"]["out_dir"]
