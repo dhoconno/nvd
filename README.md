@@ -76,14 +76,14 @@ These viral contigs are then used as BLAST queries against the NCBI `core-nt` da
 
 Additionally, the putative viral reads are mapped against the viral contigs. This allows further exploration and confirmation of any unexpected or unusual hits.
 
-The blast classifications, read mapping information, and associated contig metadata are then saved to an output folder in Excel format (and loaded into a database in the O'Connor lab LabKey Server, if appropriate access credentials are provided. `.zst` archives containing useful data files (e.g., read mapping `.bam` files) are also saved in the output folder.
+The blast classifications, read mapping information, and associated contig metadata are then saved to an output folder in Excel format (and loaded into a database in the O'Connor lab LabKey Server, if appropriate access credentials are provided). `.zst` archives containing useful data files (e.g., read mapping `.bam` files) are also saved in the output folder.
   
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- GETTING STARTED -->
 ## Getting Started
 
-NVD is written in Snakemake and has its dependencies bundled in an Apptainer container. NVD should work on machines with at least 32GB of available RAM. The `resources.zst` file is approximately 230GB. After decompression, it is approximately 300GB. The amount of storage needed depends on the size of the FASTQ files; 530GB plus 3x the size of the input FASTQ files is a good guide. For example, if the input FASTQ files are 100GB, ensure that at least 830GB of storage are available.
+NVD is written in Snakemake and has its dependencies bundled in an Apptainer container. NVD should work on machines with at least 32GB of available RAM. The `resources.zst` file is approximately 230GB. After decompression, it is approximately 300GB. The amount of storage needed depends on the size of the FASTQ files; 530GB plus 3x the size of the input FASTQ files is a good guide. For example, if the input FASTQ files are 100GB, ensure that at least 830GB of storage are available. Most testing has been done on Ubuntu Linux, however, a Dockerfile for replicating the Apptainer image is available for running on Macs running Docker Desktop.
 
 ### Prerequisites
 
