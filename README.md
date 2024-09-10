@@ -100,7 +100,7 @@ The `resources.20240830.zst` version contains `core-nt` downloaded from NCBI on 
 
 ### Linux Installation
 
-1. Clone the repo to the working directory
+1. Clone the repo to the working directory and navigate into the working directory
    ```sh
    git clone https://github.com/dhoconno/nvd.git && cd nvd
    ```
@@ -145,31 +145,31 @@ After installation, there should be `data`, `config`, `resources`, and `workflow
 ### MacOS installation
 
 1. Download and install Docker Desktop. Provide at least 32GB of memory to Docker containers.
-2. Create a conda environment with Snakemake
+2. Clone the repo to the working directory and navigate into the working directory
+   ```sh
+   git clone https://github.com/dhoconno/nvd.git && cd nvd
+   ```
+3. Create a conda environment with Snakemake
 	```
 	conda create -n nvd
 	conda activate nvd
 	conda install -y snakemake -c conda-forge
 	```
-3. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/nvd.30572.tar) the Docker image file. If you have Globus access, this link is much, much faster than the `wget` access command shown below:
+4. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/nvd.30572.tar) the Docker image file. If you have Globus access, this link is much, much faster than the `wget` access command shown below:
    ```sh
    wget https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/nvd.30572.tar
    ```
-4. Load the Docker image file
+5. Load the Docker image file
    ```sh
    docker load -i docker/nvd.tar
    ```
-5. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/resources.20240830.zst) the `resources.zst` file containing databases and taxonomy files (note, this is ~230GB and will take a while to download. I suggest going out for an iced tea while you wait. If you have Globus access, this link is much, much faster than the `wget` access command shown below:
+6. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/resources.20240830.zst) the `resources.zst` file containing databases and taxonomy files (note, this is ~230GB and will take a while to download. I suggest going out for an iced tea while you wait. If you have Globus access, this link is much, much faster than the `wget` access command shown below:
    ```sh
    wget https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/resources.20240830.zst
    ```
-6. Decompress the `resources.zst` file in the working directory and remove source after decompression
+7. Decompress the `resources.zst` file in the working directory and remove source after decompression
    ```sh
    tar -I zstd -xvf resources.20240830.zst && rm resources.20240830.zst
-   ```
-7. Clone the repo to the working directory
-   ```sh
-   git clone https://github.com/dhoconno/nvd.git
    ```
 8. Copy gzipped-FASTQ files to process into `data` folder within the working directory.
 9. Modify the `config.yaml` file to specify the samples to process and the path(s) to their FASTQ files. Here are example entries for the three supported file types:
@@ -184,7 +184,7 @@ After installation, there should be `data`, `config`, `resources`, and `workflow
    ```
    Many samples can be processed in the same workflow invokation. Multiple sample types can be processed at once. There is also a version of this workflow that runs one sample at a time on [CHTC](https://chtc.cs.wisc.edu) execute nodes. Ask DHO for details. 
    (note: if you have access to upload results to the LabKey data explorer, you will also need to add LabKey credentials to the `config.yaml` file. Ask DHO for details.)
-11. Start a Docker shell in the working directory with the repo files
+10. Start a Docker shell in the working directory with the repo files
    ```
    docker run -it --user $(id -u):$(id -g) -v $(pwd)/:/scratch -w /scratch nvd:30575
    ```
