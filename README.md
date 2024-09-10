@@ -76,7 +76,7 @@ These viral contigs are then used as BLAST queries against the NCBI `core-nt` da
 
 Additionally, the putative viral reads are mapped against the viral contigs. This allows further exploration and confirmation of any unexpected or unusual hits.
 
-The blast classifications, read mapping information, and associated contig metadata are then loaded into a database in the O'Connor lab LabKey Server. The FASTA sequences of viral contigs are also loaded into LabKey Server along with `.zst` archives containing useful data files (e.g., read mapping `.bam` files).
+The blast classifications, read mapping information, and associated contig metadata are then saved to an output folder in Excel format (and loaded into a database in the O'Connor lab LabKey Server, if appropriate access credentials are provided. `.zst` archives containing useful data files (e.g., read mapping `.bam` files) are also saved in the output folder.
   
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
