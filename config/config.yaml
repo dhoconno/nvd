@@ -12,5 +12,7 @@ samples:
 - name: Illumina_test
   r1_fastq: data/illumina.R1.fq.gz
   r2_fastq: data/illumina.R2.fq.gz
+- name: ONT_test
+  ont: data/ont.fq.gz
 - name: AE0000100A9532
   sra: SRR24010792
