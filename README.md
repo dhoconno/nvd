@@ -123,7 +123,8 @@ The `resources.20240830.zst` version contains `core-nt` downloaded from NCBI on 
    tar -I zstd -xvf resources.20240830.zst && rm resources.20240830.zst
    ```
 6. Copy gzipped-FASTQ files to process into `data` folder within the working directory.
-7. Modify the `config.yaml` file to specify the samples to process and the path(s) to their FASTQ files. Here are example entries for the three supported file types:
+7. Modify the `config.yaml` file to specify the experiment number (an integer) and an output directory.
+8. Modify the `config.yaml` file to specify the samples to process and the path(s) to their FASTQ files. Here are example entries for the three supported file types:
    ```
    - name: Illumina_test
     r1_fastq: data/illumina.R1.fastq.gz
@@ -135,7 +136,7 @@ The `resources.20240830.zst` version contains `core-nt` downloaded from NCBI on 
    ```
    Many samples can be processed in the same workflow invokation. Multiple sample types can be processed at once. There is also a version of this workflow that runs one sample at a time on [CHTC](https://chtc.cs.wisc.edu) execute nodes. Ask DHO for details. 
    (note: if you have access to upload results to the LabKey data explorer, you will also need to add LabKey credentials to the `config.yaml` file. Ask DHO for details.)
-8. Start an Apptainer shell in the working directory with the repo files
+9. Start an Apptainer shell in the working directory with the repo files
    ```
    apptainer shell nvd.30572.sif
    ```
