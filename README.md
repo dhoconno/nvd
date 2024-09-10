@@ -114,7 +114,7 @@ The `resources.20240830.zst` version contains `core-nt` downloaded from NCBI on 
    ```sh
    wget https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/nvd.30572.sif
    ```
-4. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/resources.20240830.zst) the `resources.zst` file containing databases and taxonomy files (note, this is ~230GB and will take a while to download. I suggest going out for an iced tea while you wait. If you have Globus access, this link is much, much faster than the `wget` access command shown below:
+4. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/resources.20240830.zst) the `resources.zst` file containing databases and taxonomy files (note, this is ~230GB and will take a while to download. I suggest going out for an iced tea while you wait). If you have Globus access, this link is much, much faster than the `wget` access command shown below:
    ```sh
    wget https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/resources.20240830.zst
    ```
@@ -164,7 +164,7 @@ After installation, there should be `data`, `config`, `resources`, and `workflow
    ```sh
    docker load -i docker/nvd.tar
    ```
-6. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/resources.20240830.zst) the `resources.zst` file containing databases and taxonomy files (note, this is ~230GB and will take a while to download. I suggest going out for an iced tea while you wait. If you have Globus access, this link is much, much faster than the `wget` access command shown below:
+6. [Download](https://g-2e5b4e.dtn.globus.wisc.edu/nvd/resources.20240830.zst) the `resources.zst` file containing databases and taxonomy files (note, this is ~230GB and will take a while to download. I suggest going out for an iced tea while you wait). If you have Globus access, this link is much, much faster than the `wget` access command shown below:
    ```sh
    wget https://dholk.primate.wisc.edu/_webdav/dho/projects/lungfish/InfinitePath/public/%40files/resources.20240830.zst
    ```
