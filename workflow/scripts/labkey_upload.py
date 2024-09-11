@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script to upload classified contig information to LabKey or save to Excel if LabKey API is missing.
+Script to upload classified contig information to LabKey.
 """
 
 import sys
@@ -9,10 +9,22 @@ import more_itertools
 from labkey.api_wrapper import APIWrapper
 from labkey.exceptions import ServerContextError, RequestError
 import os
+import gzip
 
-def insert_blast_results(experiment, blast_results, mapped_reads_file, stat_db_version, sample_name, blast_db_name, snakemake_run_id, labkey_server, project_name, api_key, out_dir, token_file):
+def count_fastq_reads(fastq_file):
     """
-    Insert records into LabKey or save to Excel if API key is missing.
+    Count the number of reads in a gzipped FASTQ file.
+    """
+    read_count = 0
+    with gzip.open(fastq_file, 'rt') as f:
+        for i, line in enumerate(f):
+            if i % 4 == 0:
+                read_count += 1
+    return read_count
+
+def insert_blast_results(experiment, blast_results, mapped_reads_file, stat_db_version, sample_name, blast_db_name, snakemake_run_id, labkey_server, project_name, api_key, fastq_file):
+    """
+    Insert records into LabKey.
     """
     try:
         # Check if the blast_results file is empty
@@ -37,11 +49,15 @@ def insert_blast_results(experiment, blast_results, mapped_reads_file, stat_db_v
         else:
             print(f"Warning: The mapped reads file {mapped_reads_file} is missing or empty.", file=sys.stderr)
         
+        # Count total reads in the input FASTQ file
+        total_reads = count_fastq_reads(fastq_file)
+        
         blast_rows = []
         
         for r in df.itertuples(index=False):
             try:
-                normalized_qseqid = r.qseqid.strip()  # Normalize qseqid
+                # Normalize qseqid by stripping any leading/trailing whitespace and converting to a consistent format
+                normalized_qseqid = r.qseqid.strip()  # Adjust as necessary for your data
                 mapped_reads_value = mapped_reads_dict.get(normalized_qseqid, 0)
                 if mapped_reads_value == 0:
                     print(f"Warning: No mapped reads found for qseqid '{normalized_qseqid}'", file=sys.stderr)
@@ -50,7 +66,7 @@ def insert_blast_results(experiment, blast_results, mapped_reads_file, stat_db_v
                     'experiment': str(experiment),
                     'blast_task': str(r.task),
                     'sample_id': str(r.sample),
-                    'qseqid': normalized_qseqid,  
+                    'qseqid': normalized_qseqid,
                     'qlen': int(r.qlen),
                     'sseqid': str(r.sseqid),
                     'stitle': str(r.stitle),
@@ -63,6 +79,7 @@ def insert_blast_results(experiment, blast_results, mapped_reads_file, stat_db_v
                     'blast_db_version': str(blast_db_name),
                     'snakemake_run_id': str(snakemake_run_id),
                     'mapped_reads': mapped_reads_value,
+                    'total_reads': total_reads,
                     'stat_db_version': str(stat_db_version)
                 }
                 blast_rows.append(blast_row)
@@ -73,33 +90,23 @@ def insert_blast_results(experiment, blast_results, mapped_reads_file, stat_db_v
                 print(f"ValueError for row: {r}", file=sys.stderr)
                 print(f"Error details: {str(e)}", file=sys.stderr)
 
-        # If API key is missing or empty, write to CSV instead of uploading
-        if not api_key:
-            # Create the output directory if it doesn't exist
-            if not os.path.exists(out_dir):
-                os.makedirs(out_dir, exist_ok=True)
-            
-            output_csv_file = os.path.join(out_dir, f"{sample_name}.csv")
-            pd.DataFrame(blast_rows).to_csv(output_csv_file, index=False)
-            print(f"Results saved to CSV: {output_csv_file}", file=sys.stderr)
-        else:
-            # Insert into LabKey if API key is present
-            blast_row_chunks = list(more_itertools.chunked(blast_rows, 1000))
-            api = APIWrapper(labkey_server, project_name, api_key=api_key, use_ssl=True)
-            for counter, chunk in enumerate(blast_row_chunks):
-                try:
-                    api.query.insert_rows(schema_name='lists', query_name='metagenomic_hits', rows=chunk)
-                    number_processed = (counter + 1) * len(chunk)
-                    print(f"{number_processed} BLAST output rows added for sample {sample_name}", file=sys.stderr)
-                except (ServerContextError, RequestError) as e:
-                    print(f"Error inserting chunk {counter+1}: {str(e)}", file=sys.stderr)
-                    print(f"Server response: {e.response.text if hasattr(e, 'response') else 'No response text'}", file=sys.stderr)
-                    print(f"Continuing with next chunk...", file=sys.stderr)
+        # Break apart blast_rows into smaller chunks of 1000 rows each
+        blast_row_chunks = list(more_itertools.chunked(blast_rows, 1000))
+        
+        api = APIWrapper(labkey_server, project_name, api_key=api_key, use_ssl=True)
 
-        # Create the token file to signal completion
-        with open(token_file, 'w') as f:
-            f.write('Completed')
-        print(f"Token file created at: {token_file}", file=sys.stderr)
+        for counter, chunk in enumerate(blast_row_chunks):
+            try:
+                # Insert rows into LabKey
+                api.query.insert_rows(schema_name='lists', query_name='metagenomic_hits', rows=chunk)
+                
+                # Print updates as rows processed
+                number_processed = (counter + 1) * len(chunk)
+                print(f"{number_processed} BLAST output rows added for sample {sample_name}", file=sys.stderr)
+            except (ServerContextError, RequestError) as e:
+                print(f"Error inserting chunk {counter+1}: {str(e)}", file=sys.stderr)
+                print(f"Server response: {e.response.text if hasattr(e, 'response') else 'No response text'}", file=sys.stderr)
+                print(f"Continuing with next chunk...", file=sys.stderr)
 
     except Exception as e:
         print(f"Error in insert_blast_results: {str(e)}", file=sys.stderr)
@@ -117,6 +124,5 @@ if __name__ == "__main__":
         labkey_server=snakemake.params.labkey_server,
         project_name=snakemake.params.project_name,
         api_key=snakemake.params.api_key,
-        out_dir=snakemake.params.out_dir,
-        token_file=snakemake.output.token
+        fastq_file=snakemake.input.fastq_file  # Pass the FASTQ file
     )
