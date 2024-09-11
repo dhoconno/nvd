@@ -651,6 +651,8 @@ rule labkey_upload_fasta:
         f"{log_dir}/19_labkey/{{sample}}.fasta.txt"
     params:
         experiment = config["global"]["experiment"],
+        labkey_server = config["global"].get("labkey_server", ""),
+        project_name = config["global"].get("labkey_project_name", ""),        
         api_key = config["global"].get("labkey_api_key", ""),
         snakemake_run_id = snakemake_run_id,
         singleline_fasta_path = f"{local_output_dir}/19_labkey/{{sample}}.fasta"
@@ -747,6 +749,8 @@ rule upload_files_to_labkey:
     output:
         done = f"{local_output_dir}/19_labkey/{{sample}}.upload.done"
     params:
+        labkey_server = config["global"].get("labkey_server", ""),
+        project_name = config["global"].get("labkey_project_name", ""),   
         webdav_url = config["global"].get("webdav_url", ""),
         username = config["global"].get("labkey_username", ""),
         password = config["global"].get("labkey_password", ""),
