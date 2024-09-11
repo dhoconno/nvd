@@ -608,15 +608,14 @@ rule extract_unclassified_contigs:
 
 rule labkey_upload_blast:
     """
-    Uploads BLAST results to LabKey data explorer
-    Script also calculates total reads from original sample so fraction of mapped reads can be determined
+    Uploads BLAST results to LabKey or saves to CSV if LabKey API is missing.
     """
     input:
         blast_results = f"{local_output_dir}/17_merge_annotated_blast_results/{{sample}}.txt",
-        mapped_reads = f"{local_output_dir}/20_map_reads_to_contigs/{{sample}}_mapped_counts.txt",
-        fastq_file = f"{local_output_dir}/01_prepare_input/{{sample}}.fq.gz"
+        mapped_reads = f"{local_output_dir}/20_map_reads_to_contigs/{{sample}}_mapped_counts.txt"
     output:
-        token = touch(f"{local_output_dir}/19_labkey/{{sample}}.blast.tkn")
+        token = touch(f"{local_output_dir}/19_labkey/{{sample}}.blast.tkn"),
+        csv_file = f"{config['global']['out_dir']}/{{sample}}.csv"  # Ensures the CSV is always an output
     threads: 1
     resources:
         mem_mb = 4000
@@ -624,10 +623,11 @@ rule labkey_upload_blast:
         experiment = config["global"]["experiment"],
         blast_db_name = config["global"]["blast_db_name"],
         snakemake_run_id = snakemake_run_id,
-        labkey_server = config["global"]["labkey_server"],
-        project_name = config["global"]["labkey_project_name"],
-        api_key = config["global"]["labkey_api_key"],
-        stat_db_version = config["global"]["stat_dbss"]
+        labkey_server = config["global"].get("labkey_server", ""),
+        project_name = config["global"].get("labkey_project_name", ""),
+        api_key = config["global"].get("labkey_api_key", ""),
+        stat_db_version = config["global"]["stat_dbss"],
+        out_dir = config["global"]["out_dir"]
     log:
         f"{log_dir}/19_labkey/{{sample}}.blast.log"
     benchmark:
