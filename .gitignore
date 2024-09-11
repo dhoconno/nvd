@@ -16,3 +16,4 @@ docker
 *.log
 *.out
 *.pyc
+config

@@ -612,7 +612,8 @@ rule labkey_upload_blast:
     """
     input:
         blast_results = f"{local_output_dir}/17_merge_annotated_blast_results/{{sample}}.txt",
-        mapped_reads = f"{local_output_dir}/20_map_reads_to_contigs/{{sample}}_mapped_counts.txt"
+        mapped_reads = f"{local_output_dir}/20_map_reads_to_contigs/{{sample}}_mapped_counts.txt",
+        fastq_file = f"{local_output_dir}/01_prepare_input/{{sample}}.fq.gz"
     output:
         token = touch(f"{local_output_dir}/19_labkey/{{sample}}.blast.tkn"),
         csv_file = f"{config['global']['out_dir']}/{{sample}}.csv"  # Ensures the CSV is always an output
@@ -650,7 +651,7 @@ rule labkey_upload_fasta:
         f"{log_dir}/19_labkey/{{sample}}.fasta.txt"
     params:
         experiment = config["global"]["experiment"],
-        api_key = config["global"]["labkey_api_key"],
+        api_key = config["global"].get("labkey_api_key", ""),
         snakemake_run_id = snakemake_run_id,
         singleline_fasta_path = f"{local_output_dir}/19_labkey/{{sample}}.fasta"
     script:
@@ -686,10 +687,13 @@ rule count_mapped_reads:
     """
     Counts the number of reads mapped to each contig in the BAM file.
     Outputs a two_column file with contig name and the number of mapped reads.
+    samtools flag 2304 to retain only primary alignments in counting
     """
     input:
         bam = f"{local_output_dir}/20_map_reads_to_contigs/{{sample}}.bam"
     output:
+        filtered_bam=temp(f"{local_output_dir}/20_map_reads_to_contigs/{{sample}}.filtered.bam"),
+        filtered_bam_index=temp(f"{local_output_dir}/20_map_reads_to_contigs/{{sample}}.filtered.bam.bai"),
         counts = f"{local_output_dir}/20_map_reads_to_contigs/{{sample}}_mapped_counts.txt"
     log:
         f"{log_dir}/20_map_reads_to_contigs/{{sample}}.count.log"
@@ -697,7 +701,9 @@ rule count_mapped_reads:
         f"{log_dir}/20_map_reads_to_contigs/{{sample}}.count.benchmark.txt"
     shell:
         """
-        samtools idxstats {input.bam} | awk '{{print $1, $3}}' > {output.counts} 2>&1 | tee {log}
+        samtools view -F 2304 -b {input.bam} > {output.filtered_bam}
+        samtools index {output.filtered_bam}
+        samtools idxstats {output.filtered_bam} | awk '{{print $1, $3}}' > {output.counts} 2>&1 | tee {log}
         """
 
 rule create_tarball:
@@ -741,9 +747,9 @@ rule upload_files_to_labkey:
     output:
         done = f"{local_output_dir}/19_labkey/{{sample}}.upload.done"
     params:
-        webdav_url = config["global"]["webdav_url"],
-        username = config["global"]["labkey_username"],
-        password = config["global"]["labkey_password"],
+        webdav_url = config["global"].get("webdav_url", ""),
+        username = config["global"].get("labkey_username", ""),
+        password = config["global"].get("labkey_password", ""),
         experiment = config["global"]["experiment"],
         snakemake_run_id = snakemake_run_id,
         final_output_path = config["global"]["out_dir"]

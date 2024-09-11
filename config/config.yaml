@@ -14,5 +14,5 @@ samples:
   r2_fastq: data/illumina.R2.fq.gz
 - name: ONT_test
   ont: data/ont.fq.gz
-- name: AE0000100A9532
-  sra: SRR24010792
+# - name: AE0000100A9532
+#   sra: SRR24010792

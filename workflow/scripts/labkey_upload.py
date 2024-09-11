@@ -9,8 +9,20 @@ import more_itertools
 from labkey.api_wrapper import APIWrapper
 from labkey.exceptions import ServerContextError, RequestError
 import os
+import gzip
 
-def insert_blast_results(experiment, blast_results, mapped_reads_file, stat_db_version, sample_name, blast_db_name, snakemake_run_id, labkey_server, project_name, api_key, out_dir, token_file):
+def count_total_reads(fastq_file):
+    """
+    Count the number of reads in a gzipped FASTQ file. Each read is represented by 4 lines in the FASTQ format.
+    """
+    read_count = 0
+    with gzip.open(fastq_file, 'rt') as f:
+        for i, line in enumerate(f):
+            if i % 4 == 0:  # Each read starts on every 4th line
+                read_count += 1
+    return read_count
+
+def insert_blast_results(experiment, blast_results, mapped_reads_file, stat_db_version, sample_name, blast_db_name, snakemake_run_id, labkey_server, project_name, api_key, out_dir, token_file, fastq_file):
     """
     Insert records into LabKey and save to CSV regardless.
     """
@@ -37,6 +49,9 @@ def insert_blast_results(experiment, blast_results, mapped_reads_file, stat_db_v
         else:
             print(f"Warning: The mapped reads file {mapped_reads_file} is missing or empty.", file=sys.stderr)
         
+        # Count total reads in the input FASTQ file
+        total_reads = count_total_reads(fastq_file)
+
         blast_rows = []
         
         for r in df.itertuples(index=False):
@@ -63,6 +78,7 @@ def insert_blast_results(experiment, blast_results, mapped_reads_file, stat_db_v
                     'blast_db_version': str(blast_db_name),
                     'snakemake_run_id': str(snakemake_run_id),
                     'mapped_reads': mapped_reads_value,
+                    'total_reads': total_reads,
                     'stat_db_version': str(stat_db_version)
                 }
                 blast_rows.append(blast_row)
@@ -117,5 +133,6 @@ if __name__ == "__main__":
         project_name=snakemake.params.project_name,
         api_key=snakemake.params.api_key,
         out_dir=snakemake.params.out_dir,
-        token_file=snakemake.output.token
+        token_file=snakemake.output.token,
+        fastq_file=snakemake.input.fastq_file  # Pass the FASTQ file to count total reads
     )
