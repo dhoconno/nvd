@@ -33,26 +33,6 @@ REFERENCE_TAXIDS = {
     "NC_063383.1": 10244,
 }
 
-SOURMASH_LINEAGES = {
-    "NC_005336.1": {
-        "genus": "Parapoxvirus",
-        "species": "Parapoxvirus orf",
-        "strain": "Orf virus",
-        "taxpath": "10239|2732408|2732506|2732544|10240|10255|3431389|10258",
-    },
-    "NC_003310.1": {
-        "genus": "Orthopoxvirus",
-        "species": "Orthopoxvirus monkeypox",
-        "strain": "Monkeypox virus",
-        "taxpath": "10239|2732408|2732506|2732544|10240|10242|3431483|10244",
-    },
-    "NC_063383.1": {
-        "genus": "Orthopoxvirus",
-        "species": "Orthopoxvirus monkeypox",
-        "strain": "Monkeypox virus",
-        "taxpath": "10239|2732408|2732506|2732544|10240|10242|3431483|10244",
-    },
-}
 
 SRA_RUNS = (
     {

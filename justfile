@@ -2,8 +2,6 @@ set shell := ["bash", "-cu"]
 
 PYTHON_CI_PATHS := "lib/"
 REPORTING_TYPECHECK_PATHS := "lib/py_nvd/read_inputs.py lib/py_nvd/multiqc_report.py lib/py_nvd/multiqc_packages.py lib/py_nvd/multiqc_fastx.py lib/py_nvd/multiqc_assembly.py lib/py_nvd/multiqc_query_preparation.py lib/py_nvd/multiqc_blast.py lib/py_nvd/multiqc_taxonomy.py lib/py_nvd/multiqc_domains.py bin/write_nvd_fastqc_receipt.py bin/package_nvd_report.py bin/assess_long_read_assembly.py"
-WVDB_FASTA_URL := "https://zenodo.org/records/20276352/files/WVDB_v1.0.fasta?download=1"
-WVDB_ANNOTATIONS_URL := "https://zenodo.org/records/20276352/files/WVDB_v1.0_annotations.tsv?download=1"
 
 # Default recipe: show available commands
 default:

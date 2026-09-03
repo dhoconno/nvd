@@ -1,9 +1,10 @@
 /*
- * sourmash: current engine for rapid k-mer screening
+ * sourmash: query sketching and comparison for sample-similarity QC
  *
- * Experimental branchwater-backed commands live here while the rapid-screening
- * stage is still being shaped. Keep the interface aligned with post-preprocessing NVD
- * read tuples so later gather/tax steps can extend the same subworkflow.
+ * Rapid k-mer screening was removed in v3.4.0; what remains is the sketch,
+ * collect, and compare trio that possible-mixup detection needs. Sketching is
+ * branchwater-backed and needs no reference database. Keep the interface
+ * aligned with post-preprocessing NVD read tuples.
  */
 
 process SOURMASH_SKETCH_QUERY_METAGENOME {
