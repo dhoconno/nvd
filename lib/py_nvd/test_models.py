@@ -566,6 +566,14 @@ class TestNvdParamsDefaults:
         assert cmd[no_enrichment_idx + 1] == "true"
         assert "--no-enrichment" not in cmd
 
+    def test_skip_unassembled_read_queries_reaches_nextflow(self) -> None:
+        """The read-query skip is forwarded with Nextflow underscore naming."""
+        p = NvdParams(skip_unassembled_read_queries=True)
+        cmd = p.to_nextflow_args(Path("/pipeline"))
+
+        skip_idx = cmd.index("--skip_unassembled_read_queries")
+        assert cmd[skip_idx + 1] == "true"
+
     def test_default_sourmash_reference_sources(self) -> None:
         """Experimental sourmash reference profiling is off by default."""
         assert NvdParams().sourmash_ref_path is None
@@ -600,6 +608,7 @@ class TestNvdParamsDefaults:
         assert NvdParams().skip_assembly is False
         assert NvdParams().skip_blast is False
         assert NvdParams().skip_fastqc is False
+        assert NvdParams().skip_unassembled_read_queries is False
 
     def test_default_labkey(self) -> None:
         """Default labkey matches nextflow.config."""

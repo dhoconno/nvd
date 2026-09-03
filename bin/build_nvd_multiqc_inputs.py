@@ -48,6 +48,11 @@ def main() -> None:
         required=True,
     )
     parser.add_argument(
+        "--read-querying-enabled",
+        choices=("true", "false"),
+        required=True,
+    )
+    parser.add_argument(
         "--blast-enabled",
         choices=("true", "false"),
         required=True,
@@ -65,6 +70,7 @@ def main() -> None:
                 target_enrichment_enabled=args.target_enrichment_enabled == "true",
                 depletion_enabled=args.depletion_enabled == "true",
                 assembly_enabled=args.assembly_enabled == "true",
+                read_querying_enabled=args.read_querying_enabled == "true",
                 blast_enabled=args.blast_enabled == "true",
             ),
             report_roots=ReportRoots(

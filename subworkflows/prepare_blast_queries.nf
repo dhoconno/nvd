@@ -134,7 +134,7 @@ workflow PREPARE_BLAST_QUERIES {
     ch_contig_query_lookups = ch_filtered_contigs
         .map { sample_id, _platform, _read_structure, _fasta, lookup -> tuple(sample_id, lookup) }
 
-    if (params.experimental == true) {
+    if (!params.skip_unassembled_read_queries) {
         ch_no_contig_paired = ch_paired_reads
             .combine(ch_no_contig_samples, by: [0, 1])
             .flatMap { sample_id, platform, overlap_reads, single_reads ->

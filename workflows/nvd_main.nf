@@ -34,9 +34,9 @@ workflow NVD_MAIN {
 
   main:
 
-  // BLAST needs its database when contig queries may run or experimental
-  // direct-read querying remains enabled while assembly is skipped.
-  def requires_blast_db = !params.skip_blast && (!params.skip_assembly || params.experimental)
+  // BLAST needs its database when contig queries may run, or when unassembled
+  // reads are still queried directly while assembly is skipped.
+  def requires_blast_db = !params.skip_blast && (!params.skip_assembly || !params.skip_unassembled_read_queries)
   def target_enrichment_enabled = NvdUtils.targetEnrichmentEnabled(params)
   def depletion_enabled = NvdUtils.depletionEnabled(params)
   def has_target_enrichment_index = NvdUtils.hasTargetEnrichmentIndex(params)

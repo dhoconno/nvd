@@ -311,6 +311,7 @@ summary.write_text(json.dumps({
 
 
 def test_no_contig_samples_route_full_reads_without_mapback(tmp_path: Path) -> None:
+    """Read queries are a default capability; no --experimental flag is needed."""
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     write_deacon_fake(bin_dir)
@@ -340,7 +341,7 @@ nextflow.enable.dsl = 2
 
 include {{ PREPARE_BLAST_QUERIES }} from '{PREPARE_BLAST_QUERIES}'
 
-params.experimental = true
+params.experimental = false
 params.dedup = false
 params.dedup_seq = false
 params.dedup_pos = false
@@ -395,8 +396,6 @@ workflow {{
         workflow,
         bin_dir=bin_dir,
         parameters=[
-            "--experimental",
-            "true",
             "--dedup",
             "false",
             "--dedup_seq",
@@ -438,6 +437,91 @@ workflow {{
     assert list(tmp_path.rglob("*.bam.bai")) == []
     assert list(tmp_path.rglob("*_mapped_counts.txt")) == []
     assert list(tmp_path.rglob("*.crumbs.coverage.tsv")) == []
+
+
+def test_skip_unassembled_read_queries_restricts_querying_to_contigs(
+    tmp_path: Path,
+) -> None:
+    """The opt-out restores v3.3.x behavior: contigs are the only query class."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    write_deacon_fake(bin_dir)
+
+    lib = tmp_path / "lib"
+    lib.mkdir()
+    shutil.copy2(ROOT / "lib" / "NvdUtils.groovy", lib / "NvdUtils.groovy")
+
+    target_index = tmp_path / "target.idx"
+    target_index.touch()
+    depletion_index = tmp_path / "depletion.idx"
+    depletion_index.touch()
+
+    merged = write_fastq(tmp_path / "upstream_empty.merged.fastq.gz", "merged")
+    single = write_fastq(tmp_path / "upstream_empty.single.fastq.gz", "single")
+
+    workflow = tmp_path / "main.nf"
+    workflow.write_text(
+        f"""\
+nextflow.enable.dsl = 2
+
+include {{ PREPARE_BLAST_QUERIES }} from '{PREPARE_BLAST_QUERIES}'
+
+workflow {{
+    PREPARE_BLAST_QUERIES(
+        Channel.empty(),
+        Channel.of(tuple('upstream_empty', 'illumina')),
+        Channel.of(tuple(
+            'upstream_empty',
+            'illumina',
+            [file('{merged}')],
+            [file('{single}')],
+        )),
+        Channel.empty(),
+        Channel.value(file('{target_index}')),
+        Channel.value(tuple(false, file('{depletion_index}'))),
+    )
+
+    PREPARE_BLAST_QUERIES.out.queries.view {{ query ->
+        "QUERY: ${{query[0]}}:${{query[2]}}"
+    }}
+}}
+""",
+        encoding="utf-8",
+    )
+
+    completed = run_nextflow(
+        workflow,
+        bin_dir=bin_dir,
+        parameters=[
+            "--skip_unassembled_read_queries",
+            "true",
+            "--experimental",
+            "false",
+            "--dedup",
+            "false",
+            "--dedup_seq",
+            "false",
+            "--dedup_pos",
+            "false",
+            "--no_enrichment",
+            "true",
+            "--min_consecutive_bases",
+            "1",
+            "--virus_abs_threshold",
+            "1",
+            "--virus_rel_threshold",
+            "0.0",
+            "--host_abs_threshold",
+            "1",
+            "--host_rel_threshold",
+            "0.0",
+        ],
+    )
+    diagnostics = f"stdout:\n{completed.stdout}\nstderr:\n{completed.stderr}"
+
+    assert completed.returncode == 0, diagnostics
+    assert "QUERY:" not in completed.stdout, diagnostics
+    assert "NORMALIZE_READ_BLAST_QUERIES" not in completed.stdout, diagnostics
 
 
 def write_long_read_profile(path: Path, *, eligible: bool) -> Path:

@@ -10,6 +10,7 @@ workflow MULTIQC_BUNDLING {
     ch_target_enrichment_enabled
     ch_depletion_enabled
     ch_assembly_enabled
+    ch_read_querying_enabled
     ch_blast_enabled
     ch_target_enrichment_stats
     ch_depletion_stats
@@ -125,6 +126,7 @@ workflow MULTIQC_BUNDLING {
         ch_target_enrichment_enabled,
         ch_depletion_enabled,
         ch_assembly_enabled,
+        ch_read_querying_enabled,
         ch_blast_enabled,
     )
 

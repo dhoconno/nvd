@@ -19,6 +19,7 @@ process BUILD_MULTIQC_INPUTS {
     val target_enrichment_enabled
     val depletion_enabled
     val assembly_enabled
+    val read_querying_enabled
     val blast_enabled
 
     output:
@@ -43,6 +44,7 @@ process BUILD_MULTIQC_INPUTS {
         --target-enrichment-enabled '${target_enrichment_enabled}' \
         --depletion-enabled '${depletion_enabled}' \
         --assembly-enabled '${assembly_enabled}' \
+        --read-querying-enabled '${read_querying_enabled}' \
         --blast-enabled '${blast_enabled}' \
         --output-dir nvd_inputs
     """

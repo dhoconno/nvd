@@ -144,6 +144,10 @@ e2e profile="test":
 e2e-experimental profile="test":
     NVD_INTEGRATION_PROFILE="{{ profile }}" NVD_INTEGRATION_EXPERIMENTAL=1 pixi run -e dev e2e-test
 
+# run the slow mini SRA end-to-end test with contigs as the only BLAST query class
+e2e-skip-unassembled-read-queries profile="test":
+    NVD_INTEGRATION_PROFILE="{{ profile }}" NVD_INTEGRATION_SKIP_UNASSEMBLED_READ_QUERIES=1 pixi run -e dev e2e-test
+
 # run the slow mini SRA end-to-end test without scheduling SPAdes assembly
 e2e-skip-assembly profile="test":
     NVD_INTEGRATION_PROFILE="{{ profile }}" NVD_INTEGRATION_SKIP_ASSEMBLY=1 pixi run -e dev e2e-test

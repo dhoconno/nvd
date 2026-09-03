@@ -595,6 +595,12 @@ def integration_skip_assembly_enabled() -> bool:
     return os.environ.get("NVD_INTEGRATION_SKIP_ASSEMBLY") == "1"
 
 
+def integration_skip_unassembled_read_queries_enabled() -> bool:
+    # Read querying is on by default from v3.4.0, so the contig-only path needs
+    # its own switch to stay covered.
+    return os.environ.get("NVD_INTEGRATION_SKIP_UNASSEMBLED_READ_QUERIES") == "1"
+
+
 def local_sample_row(sample: dict[str, Any], local_fastq_dir: Path) -> dict[str, str]:
     fastq1 = sample.get("fastq1")
     fastq2 = sample.get("fastq2")
@@ -715,6 +721,8 @@ def run_nextflow() -> tuple[subprocess.CompletedProcess[str], Path]:
         )
     if skip_assembly:
         command.extend(["--skip_assembly", "true"])
+    if integration_skip_unassembled_read_queries_enabled():
+        command.extend(["--skip_unassembled_read_queries", "true"])
     completed = subprocess.run(  # noqa: S603
         command,
         cwd=ROOT,
@@ -1027,8 +1035,8 @@ def test_lims_enabled_pipeline_uploads_eagerly_and_dedups() -> None:
                 f"expected the contig query class; observed {sorted(observed_classes)}"
             )
             assert observed_classes & {"overlap_merged_pair", "single_read"}, (
-                "expected read-derived query classes too (experimental mode splits "
-                f"queries by read type); observed {sorted(observed_classes)}"
+                "expected read-derived query classes too (queries are split by "
+                f"read type by default); observed {sorted(observed_classes)}"
             )
 
             before = len(first_hits)
@@ -1260,8 +1268,8 @@ def test_lims_enabled_real_labkey_uploads_and_dedups() -> None:
         )
         if experimental:
             assert observed_classes & {"overlap_merged_pair", "single_read"}, (
-                "expected read-derived query classes too (experimental mode splits "
-                f"queries by read type); observed {sorted(observed_classes)}"
+                "expected read-derived query classes too (queries are split by "
+                f"read type by default); observed {sorted(observed_classes)}"
             )
         first_hits_count = len(hits_after_first)
         first_fasta_count = len(
@@ -1369,7 +1377,7 @@ def test_mini_sra_viral_pipeline_completes() -> None:
         results_root / "13_experiment_summary" / "experiment_blast_results.tsv"
     )
 
-    if skip_assembly and not experimental:
+    if skip_assembly and integration_skip_unassembled_read_queries_enabled():
         assert not final_blast_files, (
             f"Skip-assembly run unexpectedly produced final BLAST TSVs: {final_blast_files}"
         )

@@ -138,6 +138,7 @@ def test_compiler_generates_minimal_manifest_and_custom_content(tmp_path: Path) 
             "target_enrichment_enabled": True,
             "depletion_enabled": True,
             "assembly_enabled": True,
+            "read_querying_enabled": True,
             "blast_enabled": True,
         },
         "source_identity": {"version": "3.3.0", "revision": "abc123"},
@@ -335,7 +336,13 @@ def test_compiler_renders_prepared_query_batches_and_localizes_invalid_payload(
             version_path=write_version(tmp_path / "nvd_version.txt"),
             fastqc_root=fastqc_root,
             output_dir=tmp_path / "nvd_inputs",
-            configuration=ReportConfiguration(experimental_enabled=False),
+            configuration=ReportConfiguration(
+                experimental_enabled=False,
+                # Exercise a disabled read-query class explicitly. Read querying
+                # is a default capability now, so it no longer follows from
+                # experimental_enabled being off.
+                read_querying_enabled=False,
+            ),
             report_roots=ReportRoots(query_preparation=package_root),
         ),
     )

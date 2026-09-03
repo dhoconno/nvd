@@ -156,6 +156,14 @@ class NvdParams(BaseModel):
         description="Skip per-file raw-read FastQC.",
         json_schema_extra={"category": "Core"},
     )
+    skip_unassembled_read_queries: bool = Field(
+        default=False,
+        description=(
+            "Skip BLAST querying of unassembled reads, leaving assembly contigs "
+            "as the only query classes."
+        ),
+        json_schema_extra={"category": "Core"},
+    )
 
     blast_db_version: str | None = Field(
         None,

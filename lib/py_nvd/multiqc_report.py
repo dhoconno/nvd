@@ -122,6 +122,7 @@ class ReportPlan(FrozenModel):
     target_enrichment_enabled: bool = True
     depletion_enabled: bool = True
     assembly_enabled: bool = True
+    read_querying_enabled: bool = True
     blast_enabled: bool = True
 
 
@@ -162,6 +163,7 @@ class ReportConfiguration:
     target_enrichment_enabled: bool = True
     depletion_enabled: bool = True
     assembly_enabled: bool = True
+    read_querying_enabled: bool = True
     blast_enabled: bool = True
 
 
@@ -212,6 +214,7 @@ def build_multiqc_inputs(request: CompileRequest) -> Path:
             target_enrichment_enabled=request.configuration.target_enrichment_enabled,
             depletion_enabled=request.configuration.depletion_enabled,
             assembly_enabled=request.configuration.assembly_enabled,
+            read_querying_enabled=request.configuration.read_querying_enabled,
             blast_enabled=request.configuration.blast_enabled,
         ),
     )
@@ -228,6 +231,7 @@ def build_multiqc_inputs(request: CompileRequest) -> Path:
             target_enrichment_enabled=request.configuration.target_enrichment_enabled,
             depletion_enabled=request.configuration.depletion_enabled,
             assembly_enabled=request.configuration.assembly_enabled,
+            read_querying_enabled=request.configuration.read_querying_enabled,
             blast_enabled=request.configuration.blast_enabled,
         ),
         source_identity=source_identity,

@@ -7,6 +7,10 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from py_nvd.multiqc_domains import (
+    DomainConfiguration,
+    build_domain_sections,
+)
 from py_nvd.multiqc_packages import (
     PreparedQueryBatchesReceipt,
     ReportPackage,
@@ -124,6 +128,54 @@ def test_projection_ignores_additive_columns_and_uses_report_plan_availability(
         unassembled_read_querying_enabled=True,
     )
     assert [row.query_sequences for row in experimental_rows] == [2]
+
+
+def test_default_run_reports_read_queries_without_experimental(
+    tmp_path: Path,
+) -> None:
+    """Read querying is a default capability and no longer implies --experimental.
+
+    Before v3.4.0 the report derived read-query availability from the
+    experimental gate. On a default v3.4.0 run that combination -- read batches
+    present, experimental off -- was read as a run-plan conflict, collapsing the
+    sample to a single "invalid" row and discarding its per-class breakdown.
+    """
+    rows = summary_rows()
+    for row in rows:
+        if row["query_source"] == "read_query":
+            row.update(
+                n_query_sequences=7,
+                query_fasta_present=True,
+                query_lookup_present=True,
+            )
+    package = packaged_summary(tmp_path, rows)
+
+    sections = build_domain_sections(
+        packages=(package,),
+        sample_ids=("sample_A",),
+        sample_platforms={"sample_A": "illumina"},
+        configuration=DomainConfiguration(
+            experimental_enabled=False,
+            read_querying_enabled=True,
+            target_enrichment_enabled=True,
+            depletion_enabled=False,
+            assembly_enabled=True,
+            blast_enabled=True,
+        ),
+    )
+
+    section = sections["nvd_prepared_blast_query_batches"]
+    assert [row.availability for row in section.rows] == [
+        "enabled",
+        "enabled",
+        "enabled",
+    ]
+    assert [row.query_class_code for row in section.rows] == [
+        "short_assembly_contig",
+        "overlap_merged_pair",
+        "single_read",
+    ]
+    assert [row.query_sequences for row in section.rows] == [2, 7, 7]
 
 
 def test_enabled_empty_batch_requires_success_artifacts(tmp_path: Path) -> None:

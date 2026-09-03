@@ -48,6 +48,32 @@ def test_read_entropy_defaults_match_runtime_and_schema() -> None:
     assert latest_schema["properties"]["min_read_entropy"]["default"] == 0.5
 
 
+def test_skip_unassembled_read_queries_is_declared_everywhere() -> None:
+    """The read-query skip exists in Nextflow, the model, and the schema."""
+    nextflow_config = (ROOT / "nextflow.config").read_text(encoding="utf-8")
+    config_match = re.search(
+        r"^\s*skip_unassembled_read_queries\s*=\s*(\S+)",
+        nextflow_config,
+        re.MULTILINE,
+    )
+    latest_schema = json.loads(
+        (ROOT / "schemas" / "nvd-params.latest.schema.json").read_text(
+            encoding="utf-8",
+        ),
+    )
+
+    assert config_match is not None, (
+        "nextflow.config skip_unassembled_read_queries is missing"
+    )
+    # null keeps bare `--skip_unassembled_read_queries` usable as a Nextflow flag,
+    # matching the other skip_* params.
+    assert config_match.group(1) == "null"
+    assert NvdParams().skip_unassembled_read_queries is False
+    assert (
+        latest_schema["properties"]["skip_unassembled_read_queries"]["default"] is False
+    )
+
+
 def test_preprocess_param_is_gone() -> None:
     """preprocess was never read by the pipeline and is removed in v3.4.0."""
     nextflow_config = (ROOT / "nextflow.config").read_text(encoding="utf-8")

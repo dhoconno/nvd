@@ -70,6 +70,7 @@ def copy_results_config(tmp_path: Path) -> None:
         f"""\
 params.results = '{tmp_path / "results"}'
 params.experimental = false
+params.skip_unassembled_read_queries = false
 params.no_enrichment = true
 includeConfig 'conf/results.config'
 """,
@@ -249,6 +250,7 @@ def bundling_invocation(
     target_enrichment: bool = False,
     depletion: bool = False,
     assembly: bool = True,
+    read_querying: bool = True,
     blast: bool = True,
     target_enrichment_stats: str = "Channel.empty()",
     depletion_stats: str = "Channel.empty()",
@@ -274,6 +276,7 @@ def bundling_invocation(
         Channel.value({enabled(target_enrichment)}),
         Channel.value({enabled(depletion)}),
         Channel.value({enabled(assembly)}),
+        Channel.value({enabled(read_querying)}),
         Channel.value({enabled(blast)}),
         {target_enrichment_stats},
         {depletion_stats},
@@ -423,6 +426,7 @@ include {{ GENERATE_MULTIQC_REPORT }} from '{MULTIQC_MODULE}'
 
 params.results = '{tmp_path / "results"}'
 params.experimental = false
+params.skip_unassembled_read_queries = false
 workflow {{
 {bundling_invocation(roster, version, config, target_enrichment=True, assembly=False, target_enrichment_stats=target_enrichment_input)}
 {renderer_invocation()}
@@ -470,8 +474,9 @@ include {{ GENERATE_MULTIQC_REPORT }} from '{MULTIQC_MODULE}'
 
 params.results = '{tmp_path / "results"}'
 params.experimental = false
+params.skip_unassembled_read_queries = true
 workflow {{
-{bundling_invocation(roster, version, config, prepared_query_batch_summaries=prepared_query_input)}
+{bundling_invocation(roster, version, config, read_querying=False, prepared_query_batch_summaries=prepared_query_input)}
 {renderer_invocation()}
 }}
 """,
@@ -527,6 +532,7 @@ include {{ GENERATE_MULTIQC_REPORT }} from '{MULTIQC_MODULE}'
 
 params.results = '{tmp_path / "results"}'
 params.experimental = false
+params.skip_unassembled_read_queries = false
 workflow {{
 {bundling_invocation(roster, version, config, megablast_query_partition_summaries=megablast_partition_input)}
 {renderer_invocation()}
@@ -585,6 +591,7 @@ include {{ GENERATE_MULTIQC_REPORT }} from '{MULTIQC_MODULE}'
 
 params.results = '{tmp_path / "results"}'
 params.experimental = true
+params.skip_unassembled_read_queries = false
 workflow {{
 {bundling_invocation(roster, version, config, experimental=True, taxon_big_tables=taxon_big_table_input)}
 {renderer_invocation()}
@@ -668,6 +675,7 @@ include {{ GENERATE_MULTIQC_REPORT }} from '{MULTIQC_MODULE}'
 
 params.results = '{tmp_path / "results"}'
 params.experimental = false
+params.skip_unassembled_read_queries = false
 workflow {{
 {bundling_invocation(roster, version, config, assembly_eligibility_decisions=assembly_decision_input)}
 {renderer_invocation()}
@@ -737,6 +745,7 @@ include {{ FASTQC_RAW }} from '{FASTQC_MODULE}'
 
 params.results = '{tmp_path / "results"}'
 params.experimental = false
+params.skip_unassembled_read_queries = false
 
 workflow {{
     reads = Channel.of(tuple(
@@ -836,6 +845,7 @@ include {{ FASTQC_RAW }} from '{FASTQC_MODULE}'
 
 params.results = '{tmp_path / "results"}'
 params.experimental = false
+params.skip_unassembled_read_queries = false
 workflow {{
     reads = Channel.of(tuple(
         [id: 'sample_A', platform: 'illumina', source: 'single_file', read_mode: 'single', r1_count: 1],
@@ -902,6 +912,7 @@ include {{ FASTQC_RAW }} from '{FASTQC_MODULE}'
 
 params.results = '{tmp_path / "results"}'
 params.experimental = false
+params.skip_unassembled_read_queries = false
 workflow {{
     reads = Channel.of(tuple(
         [id: '{sample_id}', platform: 'illumina', source: 'single_file', read_mode: 'single', r1_count: 1],
@@ -985,6 +996,7 @@ include {{ GENERATE_MULTIQC_REPORT }} from '{MULTIQC_MODULE}'
 
 params.results = '{tmp_path / "results"}'
 params.experimental = false
+params.skip_unassembled_read_queries = false
 workflow {{
     sentinel = Channel.value('scientific-complete')
 {bundling_invocation(roster, version, config)}
@@ -1039,6 +1051,7 @@ include {{ GENERATE_MULTIQC_REPORT }} from '{MULTIQC_MODULE}'
 
 params.results = '{tmp_path / "results"}'
 params.experimental = false
+params.skip_unassembled_read_queries = false
 workflow {{
     sentinel = Channel.value('scientific-complete')
 {bundling_invocation(bad_roster, version, config)}

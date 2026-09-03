@@ -136,6 +136,10 @@ class DomainConfiguration:
     target_enrichment_enabled: bool
     depletion_enabled: bool
     assembly_enabled: bool
+    # Paired with assembly_enabled: together they say which query sources the
+    # run was configured to produce. Deliberately independent of
+    # experimental_enabled, which read querying no longer implies.
+    read_querying_enabled: bool
     blast_enabled: bool
 
 
@@ -497,17 +501,17 @@ def build_domain_sections(
             },
             sample_platforms=sample_platforms,
             assembly_enabled=configuration.assembly_enabled,
-            unassembled_read_querying_enabled=configuration.experimental_enabled,
+            unassembled_read_querying_enabled=configuration.read_querying_enabled,
         )
         sections["nvd_prepared_blast_query_batches"] = TableSection(
             section_name="Prepared BLAST Query Batches",
             description=(
                 "Prepared query batches observed for each sample and query class. "
-                "BLAST querying of unassembled reads alongside assembly contigs is "
-                "currently only available in experimental mode. Resume the run if "
-                "a summary is invalid; if the problem recurs, inspect the "
-                "SUMMARIZE_BLAST_QUERY_BATCHES process and include its logs when "
-                "reporting the issue."
+                "Unassembled reads are queried alongside assembly contigs by "
+                "default; pass --skip_unassembled_read_queries to restrict "
+                "querying to contigs. Resume the run if a summary is invalid; if "
+                "the problem recurs, inspect the SUMMARIZE_BLAST_QUERY_BATCHES "
+                "process and include its logs when reporting the issue."
             ),
             rows=rows,
             headers={

@@ -182,6 +182,7 @@ workflow REPORTING {
         channel.value(target_enrichment_enabled),
         channel.value(NvdUtils.depletionEnabled(params)),
         channel.value(!params.skip_assembly),
+        channel.value(!params.skip_unassembled_read_queries),
         channel.value(!params.skip_blast),
         ch_target_enrichment_stats,
         ch_depletion_stats,

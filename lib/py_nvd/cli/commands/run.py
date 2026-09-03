@@ -171,6 +171,12 @@ def run(
         help="Skip per-file raw-read FastQC.",
         rich_help_panel=PANEL_CORE,
     ),
+    skip_unassembled_read_queries: bool | None = typer.Option(
+        None,
+        "--skip-unassembled-read-queries",
+        help="Skip BLAST querying of unassembled reads (contigs only).",
+        rich_help_panel=PANEL_CORE,
+    ),
     # -------------------------------------------------------------------------
     # Reference Paths
     # -------------------------------------------------------------------------
@@ -615,6 +621,7 @@ def run(
         "skip_assembly": skip_assembly,
         "skip_blast": skip_blast,
         "skip_fastqc": skip_fastqc,
+        "skip_unassembled_read_queries": skip_unassembled_read_queries,
         # Reference paths
         "blast_db": blast_db,
         "blast_db_prefix": blast_db_prefix,

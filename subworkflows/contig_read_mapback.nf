@@ -34,7 +34,7 @@ workflow CONTIG_READ_MAPBACK {
 
     COUNT_MAPPED_READS(ch_mapback_bams)
 
-    if (params.experimental == true) {
+    if (!params.skip_unassembled_read_queries) {
         EXTRACT_UNMAPPED_READS(ch_single_reads_with_contigs)
         ch_unmapped_reads = MAP_PAIRED_READS.out.overlap_unmapped_reads
             .mix(MAP_PAIRED_READS.out.single_unmapped_reads)
