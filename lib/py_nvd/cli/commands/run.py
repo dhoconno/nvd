@@ -492,6 +492,12 @@ def run(
         help="LabKey list name for BLAST FASTA results",
         rich_help_panel=PANEL_LABKEY,
     ),
+    labkey_insert_batch_size: int | None = typer.Option(
+        None,
+        "--labkey-insert-batch-size",
+        help="Rows per LabKey insert call (default: 1000)",
+        rich_help_panel=PANEL_LABKEY,
+    ),
     # -------------------------------------------------------------------------
     # Notifications
     # -------------------------------------------------------------------------
@@ -677,6 +683,7 @@ def run(
         "labkey_schema": labkey_schema,
         "labkey_blast_meta_hits_list": labkey_blast_meta_hits_list,
         "labkey_blast_fasta_list": labkey_blast_fasta_list,
+        "labkey_insert_batch_size": labkey_insert_batch_size,
         # Notifications
         "slack_enabled": False if no_slack else None,  # Only override if --no-slack
         "slack_channel": slack_channel,

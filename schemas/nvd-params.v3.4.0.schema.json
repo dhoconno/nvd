@@ -34,6 +34,12 @@
       "type": "string",
       "description": "LabKey list name for BLAST FASTA uploads"
     },
+    "labkey_insert_batch_size": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1000,
+      "description": "Rows per LabKey insert call. Read-derived query classes produce payloads large enough that a single call can hang the server."
+    },
     "samplesheet": {
       "type": "string",
       "format": "path",

@@ -12,7 +12,7 @@ import os
 import sys
 from datetime import datetime
 
-from py_nvd.labkey_io import insert_records, rows_present
+from py_nvd.labkey_io import PartialInsertError, insert_records, rows_present
 
 
 def sample_already_uploaded(query_api, schema, table, experiment, sample_id) -> bool:
@@ -48,6 +48,15 @@ def main():
     parser.add_argument("--labkey-api-key", required=True)
     parser.add_argument("--labkey-schema", required=True)
     parser.add_argument("--table-name", default="fasta_hits_test_nvd2")
+    parser.add_argument(
+        "--insert-batch-size",
+        type=int,
+        default=1000,
+        help=(
+            "Rows per LabKey insert call. Read-derived query classes produce "
+            "payloads large enough that a single call can hang the server."
+        ),
+    )
     args = parser.parse_args()
 
     log_entries = [
@@ -126,13 +135,44 @@ def main():
                     )
 
                     if upload_enabled:
-                        # Insert the whole file atomically: chunking only adds
-                        # partial-failure risk (some rows committed, some not)
-                        # without a throughput benefit at this batch size.
+                        # Sent in batches: read-derived query classes make
+                        # these payloads large enough that a single insert call
+                        # can hang the server. Batching gives up atomicity, so a
+                        # mid-way failure is reported loudly rather than rolled
+                        # back.
                         try:
                             insert_records(
-                                api.query, args.labkey_schema, args.table_name, records,
+                                api.query,
+                                args.labkey_schema,
+                                args.table_name,
+                                records,
+                                batch_size=args.insert_batch_size,
                             )
+                        except PartialInsertError as e:
+                            log_entries.append(f"  Upload: ERROR - {e!s}")
+                            log_entries.append(
+                                f"\nFASTA UPLOAD FAILED - {e.rows_committed} of "
+                                f"{e.total_rows} rows were COMMITTED and were NOT "
+                                f"rolled back.\n"
+                                f"The destination list is keyed on row presence, "
+                                f"so a retry will treat "
+                                f"experiment={args.experiment_id} "
+                                f"sample={args.sample_id} as already uploaded and "
+                                f"silently skip the remaining "
+                                f"{e.total_rows - e.rows_committed} rows.\n"
+                                f"Delete that unit's rows from "
+                                f"{args.labkey_schema}.{args.table_name} before "
+                                f"re-running.",
+                            )
+                            _write_log(log_entries)
+                            print(
+                                f"ERROR: LabKey insert failed for "
+                                f"sample={args.sample_id} after committing "
+                                f"{e.rows_committed}/{e.total_rows} rows; delete "
+                                f"this unit's rows before retrying: {e!s}",
+                                file=sys.stderr,
+                            )
+                            sys.exit(1)
                         except Exception as e:
                             log_entries.append(f"  Upload: ERROR - {e!s}")
                             log_entries.append(

@@ -446,6 +446,14 @@ class NvdParams(BaseModel):
         description="LabKey list name for BLAST metagenomic hits",
         json_schema_extra={"category": "LabKey"},
     )
+    labkey_insert_batch_size: int = Field(
+        1000,
+        description=(
+            "Rows per LabKey insert call; large read-query payloads can hang "
+            "the server when sent as one request"
+        ),
+        json_schema_extra={"category": "LabKey"},
+    )
     labkey_blast_fasta_list: str | None = Field(
         None,
         description="LabKey list name for BLAST FASTA results",
@@ -527,6 +535,7 @@ class NvdParams(BaseModel):
         "min_consecutive_bases",
         "min_read_length",
         "max_concurrent_downloads",
+        "labkey_insert_batch_size",
         "host_kmer_size",
         "host_window_size",
         "host_abs_threshold",
