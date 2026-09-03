@@ -205,8 +205,8 @@
     },
     "merge_pairs": {
       "type": "boolean",
-      "default": false,
-      "description": "Merge overlapping paired-end reads before contig mapback"
+      "default": true,
+      "description": "Merge overlapping paired-end reads before contig mapback. On by default; disable with --no-merge-pairs."
     },
     "dedup": {
       "type": "boolean",

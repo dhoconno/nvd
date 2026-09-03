@@ -48,6 +48,26 @@ def test_read_entropy_defaults_match_runtime_and_schema() -> None:
     assert latest_schema["properties"]["min_read_entropy"]["default"] == 0.5
 
 
+def test_merge_pairs_default_matches_runtime_and_schema() -> None:
+    """Pair merging is on by default in Nextflow, the model, and the schema."""
+    nextflow_config = (ROOT / "nextflow.config").read_text(encoding="utf-8")
+    config_match = re.search(
+        r"^\s*merge_pairs\s*=\s*(\w+)",
+        nextflow_config,
+        re.MULTILINE,
+    )
+    latest_schema = json.loads(
+        (ROOT / "schemas" / "nvd-params.latest.schema.json").read_text(
+            encoding="utf-8",
+        ),
+    )
+
+    assert config_match is not None, "nextflow.config merge_pairs is missing"
+    assert config_match.group(1) == "true"
+    assert NvdParams().merge_pairs is True
+    assert latest_schema["properties"]["merge_pairs"]["default"] is True
+
+
 def test_skip_unassembled_read_queries_is_declared_everywhere() -> None:
     """The read-query skip exists in Nextflow, the model, and the schema."""
     nextflow_config = (ROOT / "nextflow.config").read_text(encoding="utf-8")

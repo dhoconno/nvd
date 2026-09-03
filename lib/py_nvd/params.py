@@ -285,7 +285,15 @@ def _yaml_analysis_section(
     ]
     for name in preprocess_params:
         if name in properties:
-            lines.append(_format_commented_param(name, properties[name]))
+            prop = properties[name]
+            if name == "merge_pairs":
+                # Merging is on by default, so surface it uncommented rather
+                # than as an opt-in suggestion like the rest of this section.
+                default = prop.get("default")
+                desc = prop.get("description", "")
+                lines.append(f"{name}: {_format_yaml_value(default)}  # {desc}")
+            else:
+                lines.append(_format_commented_param(name, prop))
     lines.append("")
 
 
@@ -432,6 +440,7 @@ def _generate_json_template(path: Path, _schema: dict, schema_url: str) -> None:
         "cutoff_percent": 0.001,
         "entropy": 0.9,
         "tax_stringency": 0.7,
+        "merge_pairs": True,
     }
 
     with open(path, "w", encoding="utf-8") as f:

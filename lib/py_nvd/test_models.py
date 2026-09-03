@@ -20,7 +20,7 @@ class TestNvdParamsInstantiation:
     def test_minimal_instantiation(self) -> None:
         """Can create NvdParams with no arguments (all defaults)."""
         p = NvdParams()
-        assert p.merge_pairs is False
+        assert p.merge_pairs is True
         assert p.cutoff_percent == 0.001
 
     def test_with_required_fields(self) -> None:
@@ -590,8 +590,8 @@ class TestNvdParamsDefaults:
         assert NvdParams().max_blast_targets == 100
 
     def test_default_merge_pairs(self) -> None:
-        """Default merge_pairs matches nextflow.config."""
-        assert NvdParams().merge_pairs is False
+        """Pair merging is on by default; --no-merge-pairs is the opt-out."""
+        assert NvdParams().merge_pairs is True
 
     def test_default_low_complexity_read_filter(self) -> None:
         """Low-complexity read filtering is opt-in with a dormant threshold."""

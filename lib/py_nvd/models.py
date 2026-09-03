@@ -272,8 +272,11 @@ class NvdParams(BaseModel):
         json_schema_extra={"category": "Databases"},
     )
     merge_pairs: bool = Field(
-        default=False,
-        description="Merge overlapping paired-end reads before contig mapback",
+        default=True,
+        description=(
+            "Merge overlapping paired-end reads before contig mapback "
+            "(on by default; disable with --no-merge-pairs)"
+        ),
         json_schema_extra={"category": "Preprocessing"},
     )
     dedup: bool = Field(

@@ -384,7 +384,7 @@ def run(
     merge_pairs: bool | None = typer.Option(
         None,
         "--merge-pairs/--no-merge-pairs",
-        help="Merge overlapping paired-end reads before contig mapback",
+        help="Merge overlapping paired-end reads before contig mapback (default: on)",
         rich_help_panel=PANEL_PREPROCESSING,
     ),
     host_index: Path | None = typer.Option(
