@@ -18,8 +18,6 @@ DATA = ROOT / "tests" / "data"
 MANIFEST = DATA / "reference.manifest.json"
 SAMPLESHEET = DATA / "integration_sra_samplesheet.csv"
 DEACON_INDEX = DATA / "mini_virus_deacon.k31w1.idx"
-SOURMASH_REF_FASTA = DATA / "mini_virus_reference.fasta"
-SOURMASH_LINEAGES = DATA / "mini_sourmash_lineages.csv"
 BLAST_DB_PREFIX = "mini_virus_blast"
 BLAST_DB = DATA
 E2E_OUTPUT_DIR = ROOT / ".e2e"
@@ -140,146 +138,6 @@ def test_selected_manifest_sra_runs_follow_samplesheet_rows(tmp_path: Path) -> N
     ]
 
 
-def test_mini_sourmash_lineages_support_bioboxes() -> None:
-    """The mini sourmash taxonomy fixture must include BioBoxes taxpaths."""
-    with SOURMASH_LINEAGES.open(newline="", encoding="utf-8") as handle:
-        rows = list(csv.DictReader(handle))
-
-    ranks = (
-        "superkingdom",
-        "phylum",
-        "class",
-        "order",
-        "family",
-        "genus",
-        "species",
-        "strain",
-    )
-    assert rows, f"No sourmash lineage rows found in {SOURMASH_LINEAGES}"
-    for row in rows:
-        taxpath = row.get("taxpath", "")
-        taxids = taxpath.split("|") if taxpath else []
-        assert len(taxids) == len(ranks), row
-        for rank, taxid in zip(ranks, taxids, strict=True):
-            assert bool(row.get(rank)) == bool(taxid), row
-
-
-def run_sourmash(*args: str | Path) -> subprocess.CompletedProcess[str]:
-    """Run sourmash from the test environment."""
-    return subprocess.run(  # noqa: S603
-        ["sourmash", *(str(arg) for arg in args)],  # noqa: S607
-        cwd=ROOT,
-        check=False,
-        text=True,
-        capture_output=True,
-        timeout=120,
-    )
-
-
-def test_sourmash_tax_metagenome_writes_all_formats_with_strain_taxids(
-    tmp_path: Path,
-) -> None:
-    """Sourmash 4.9.4 consumes the complete positional taxonomy contract."""
-    query = tmp_path / "query.sig.zip"
-    reference = tmp_path / "reference.sig.zip"
-    gather = tmp_path / "gather.csv"
-    output_base = tmp_path / "profile"
-    commands = [
-        (
-            "sketch",
-            "dna",
-            SOURMASH_REF_FASTA,
-            "-p",
-            "dna,k=31,scaled=50,abund",
-            "-o",
-            query,
-        ),
-        (
-            "sketch",
-            "dna",
-            SOURMASH_REF_FASTA,
-            "--singleton",
-            "-p",
-            "dna,k=31,scaled=50",
-            "-o",
-            reference,
-        ),
-        (
-            "gather",
-            query,
-            reference,
-            "-k",
-            "31",
-            "--scaled",
-            "50",
-            "-o",
-            gather,
-        ),
-        (
-            "tax",
-            "metagenome",
-            "--gather-csv",
-            gather,
-            "--taxonomy-csv",
-            SOURMASH_LINEAGES,
-            "--keep-identifier-versions",
-            "--use-abundances",
-            "--output-format",
-            "csv_summary",
-            "lineage_summary",
-            "krona",
-            "kreport",
-            "bioboxes",
-            "--rank",
-            "species",
-            "--output-base",
-            output_base,
-        ),
-    ]
-
-    for command in commands:
-        result = run_sourmash(*command)
-        assert result.returncode == 0, result.stderr
-
-    outputs = (
-        tmp_path / "profile.summarized.csv",
-        tmp_path / "profile.lineage_summary.tsv",
-        tmp_path / "profile.krona.tsv",
-        tmp_path / "profile.kreport.txt",
-        tmp_path / "profile.bioboxes.profile",
-    )
-    for output in outputs:
-        assert output.stat().st_size > 0, output
-
-    bioboxes_lines = outputs[-1].read_text(encoding="utf-8").splitlines()
-    assert not any("None" in line for line in bioboxes_lines)
-    profile_rows = [
-        line.split("\t")
-        for line in bioboxes_lines
-        if line and not line.startswith(("#", "@"))
-    ]
-    assert profile_rows
-    assert {"3431389", "3431483"}.issubset({row[0] for row in profile_rows})
-    rank_order = (
-        "superkingdom",
-        "phylum",
-        "class",
-        "order",
-        "family",
-        "genus",
-        "species",
-        "strain",
-    )
-    for taxid, rank, taxpath, taxpath_names, percentage in profile_rows:
-        taxids = taxpath.split("|")
-        names = taxpath_names.split("|")
-        assert taxid == taxids[-1]
-        assert rank == rank_order[len(taxids) - 1]
-        assert len(taxids) == len(names)
-        assert all(taxids)
-        assert 0 <= float(percentage) <= 100  # noqa: PLR2004
-
-
 def test_mini_nvd_taxdump_preserves_noncanonical_virus_root_rank(
     tmp_path: Path,
 ) -> None:
@@ -356,7 +214,7 @@ def read_fasta_records(path: Path) -> dict[str, str]:
 
 
 def assert_best_hit_sequence_evidence_outputs(results_root: Path) -> None:
-    best_hit_sequences_dir = results_root / "11_best_hit_sequences"
+    best_hit_sequences_dir = results_root / "10_best_hit_sequences"
     expected_artifacts = {
         "query_sequences.fasta",
         "selected_references.fasta",
@@ -523,7 +381,7 @@ def assert_successful_nvd_multiqc_outputs(
 ) -> None:
     """Assert the healthy fixture completed ancillary reporting and publication."""
     report = results_root / "multiqc_report.html"
-    data = results_root / "13_experiment_summary" / "multiqc_data"
+    data = results_root / "12_experiment_summary" / "multiqc_data"
     nvd_inputs = data / "nvd_inputs"
     manifest_path = nvd_inputs / "nvd_report_manifest.json"
     raw_fastqc = results_root / "00_input_preparation" / "raw_fastq_qc" / "fastqc"
@@ -713,10 +571,6 @@ def run_nextflow() -> tuple[subprocess.CompletedProcess[str], Path]:
                 "true",
                 "--merge_pairs",
                 "true",
-                "--sourmash_ref_fasta",
-                str(SOURMASH_REF_FASTA),
-                "--sourmash_lineages_path",
-                str(SOURMASH_LINEAGES),
             ],
         )
     if skip_assembly:
@@ -936,16 +790,11 @@ def run_labkey_nextflow(  # noqa: PLR0913
     if experimental:
         # Read-derived query classes (overlap_merged_pair, single_read) alongside
         # short_assembly_contig, so the run exercises the full per-query-class
-        # split. Needs the sourmash rapid-screening fixtures experimental turns on.
         command += [
             "--experimental",
             "true",
             "--merge_pairs",
             "true",
-            "--sourmash_ref_fasta",
-            str(SOURMASH_REF_FASTA),
-            "--sourmash_lineages_path",
-            str(SOURMASH_LINEAGES),
         ]
     completed = subprocess.run(  # noqa: S603
         command,
@@ -1018,7 +867,7 @@ def test_lims_enabled_pipeline_uploads_eagerly_and_dedups() -> None:
 
             results_root = run_dir / "results" / "nvd"
             assert (
-                results_root / "14_labkey_uploads" / "upload_logs" / "final_labkey_upload.log"
+                results_root / "13_labkey_uploads" / "upload_logs" / "final_labkey_upload.log"
             ).exists(), f"Missing final LabKey upload log under {results_root}"
 
             first_hits = data_hits_inserts(mock)
@@ -1333,7 +1182,7 @@ def test_mini_sra_viral_pipeline_completes() -> None:
     )
 
     results_root = run_dir / "results" / "nvd"
-    assert not (results_root / "14_labkey_uploads").exists()
+    assert not (results_root / "13_labkey_uploads").exists()
     expected_sample_ids = {
         str(run_info["sample_id"])
         for run_info in (*LOCAL_E2E_SAMPLES, *selected_sra_runs)
@@ -1374,7 +1223,7 @@ def test_mini_sra_viral_pipeline_completes() -> None:
     final_blast_files = sorted(final_dir.glob("*_blast.final.tsv"))
 
     experiment_blast = (
-        results_root / "13_experiment_summary" / "experiment_blast_results.tsv"
+        results_root / "12_experiment_summary" / "experiment_blast_results.tsv"
     )
 
     if skip_assembly and integration_skip_unassembled_read_queries_enabled():
@@ -1449,7 +1298,7 @@ def test_mini_sra_viral_pipeline_completes() -> None:
         if not skip_assembly:
             assert_long_read_assembly_outputs(results_root, selected_sra_runs)
 
-        big_tables_dir = results_root / "12_big_tables"
+        big_tables_dir = results_root / "11_big_tables"
         table_inputs = {
             "query_big_table.tsv": big_tables_dir / "query" / "per_sample",
             "taxon_big_table.tsv": big_tables_dir / "taxon" / "per_sample",
@@ -1499,97 +1348,3 @@ def test_mini_sra_viral_pipeline_completes() -> None:
 
         assert_best_hit_sequence_evidence_outputs(results_root)
 
-        sourmash_root = (
-            results_root
-            / "08_metagenomic_profiles"
-            / "rapid_screening"
-            / "engines"
-            / "sourmash"
-        )
-        ref_dir = sourmash_root / "reference"
-        gather_dir = sourmash_root / "gather"
-        risk_group_dir = sourmash_root / "taxonomy" / "risk_groups"
-        merged_taxburst_dir = sourmash_root / "plots" / "taxburst"
-        taxburst_dir = merged_taxburst_dir / "per_sample"
-        sankey_dir = sourmash_root / "plots" / "sankey"
-
-        ref_sketches = sorted(ref_dir.glob("sourmash_reference.k31.scaled50.sig.zip"))
-        assert ref_sketches, f"Missing sourmash reference sketch in {ref_dir}"
-
-        expected_species_by_sample = {
-            run_info["sample_id"]: run_info["expected_organism"]
-            for run_info in selected_sra_runs
-        }
-        expected_risk_group_species = {
-            "Orf virus": ("Parapoxvirus orf", "RG2"),
-            "Monkeypox virus": ("Orthopoxvirus monkeypox", "RG3"),
-        }
-        merged_taxburst_html = merged_taxburst_dir / "sourmash.taxburst.html"
-        assert merged_taxburst_html.is_file(), (
-            f"Missing merged sourmash taxburst report: {merged_taxburst_html}"
-        )
-        assert merged_taxburst_html.stat().st_size > 0, (
-            f"Empty merged sourmash taxburst report: {merged_taxburst_html}"
-        )
-
-        for sample_id, expected_species in expected_species_by_sample.items():
-            gather_csv = gather_dir / f"{sample_id}.sourmash.gather.csv"
-            assert gather_csv.is_file(), f"Missing sourmash gather CSV: {gather_csv}"
-            gather_rows = read_csv_rows(gather_csv)
-            assert gather_rows, f"No sourmash gather rows found for {sample_id}"
-            assert any(
-                expected_species in (row.get("name") or row.get("match_name", ""))
-                for row in gather_rows
-            ), f"No {expected_species} sourmash gather hit found for {sample_id}"
-
-            risk_group_csv = (
-                risk_group_dir
-                / f"{sample_id}.sourmash.tax_metagenome.with_risk_groups.csv"
-            )
-            assert risk_group_csv.is_file(), (
-                f"Missing WHO risk-group annotated sourmash summary: {risk_group_csv}"
-            )
-            risk_group_rows = read_csv_rows(risk_group_csv)
-            assert risk_group_rows, f"No rows in {risk_group_csv}"
-            columns = list(risk_group_rows[0])
-            assert columns.index("who_risk_group") == columns.index("lineage") + 1
-            assert any(
-                row.get("lineage", "").split(";")[-1]
-                == expected_risk_group_species[expected_species][0]
-                and row.get("who_risk_group")
-                == expected_risk_group_species[expected_species][1]
-                for row in risk_group_rows
-            ), (
-                "No WHO risk group found for "
-                f"{expected_risk_group_species[expected_species]} in {risk_group_csv}"
-            )
-
-            taxburst_html = taxburst_dir / f"{sample_id}.sourmash.taxburst.html"
-            taxburst_json = taxburst_dir / f"{sample_id}.sourmash.taxburst.json"
-            for report in (taxburst_html, taxburst_json):
-                assert report.is_file(), f"Missing sourmash taxburst report: {report}"
-                assert report.stat().st_size > 0, (
-                    f"Empty sourmash taxburst report: {report}"
-                )
-
-            sankey_html = sankey_dir / f"{sample_id}.sourmash.sankey.html"
-            assert sankey_html.is_file(), (
-                f"Missing sourmash Sankey report: {sankey_html}"
-            )
-            assert sankey_html.stat().st_size > 0, (
-                f"Empty sourmash Sankey report: {sankey_html}"
-            )
-
-        eval_root = results_root / "10_rapid_screening_eval"
-        for eval_artifact in (
-            eval_root / "database" / "rapid_screening_eval.duckdb",
-            eval_root / "exports" / "screening_signal_followup_by_sample_rank.tsv",
-            eval_root / "exports" / "screening_signals_without_same_rank_followup.tsv",
-            eval_root / "reports" / "rapid_screening_eval.html",
-        ):
-            assert eval_artifact.is_file(), (
-                f"Missing rapid-screening eval artifact: {eval_artifact}"
-            )
-            assert eval_artifact.stat().st_size > 0, (
-                f"Empty rapid-screening eval artifact: {eval_artifact}"
-            )

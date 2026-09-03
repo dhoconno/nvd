@@ -19,9 +19,7 @@ include { PROCESS_CONTIGS         } from "../subworkflows/process_contigs"
 include { PREPARE_BLAST_QUERIES } from "../subworkflows/prepare_blast_queries"
 include { CLASSIFY_WITH_MEGABLAST } from "../subworkflows/classify_with_megablast"
 include { CLASSIFY_WITH_BLASTN    } from "../subworkflows/classify_with_blastn"
-include { RAPID_SCREENING         } from "../subworkflows/rapid_screening"
 include { SAMPLE_SIMILARITY_QC    } from "../subworkflows/sample_similarity_qc"
-include { RAPID_SCREENING_EVAL    } from "../subworkflows/rapid_screening_eval"
 include { REPORTING               } from "../subworkflows/reporting"
 include { NOTIFY_RUN_COMPLETION_SLACK } from "../modules/notifications"
 include { COMPUTE_RUN_CONTEXT ; ENSURE_TAXONOMY } from "../modules/utils"
@@ -66,22 +64,10 @@ workflow NVD_MAIN {
 
   PREPROCESS_READS(GATHER_READS.out.reads)
 
-  ch_sourmash_gather_csv = channel.empty()
-  ch_sourmash_lineages = channel.empty()
-  ch_sourmash_tax_reports = channel.empty()
   ch_risk_group_lookup = Channel.value(file("${projectDir}/assets/human_virus_risk_group_lookup.tsv"))
 
   if (params.experimental == true) {
-    rapid_screening = RAPID_SCREENING(
-      PREPROCESS_READS.out.profiled_batches_by_sample,
-      ch_risk_group_lookup,
-      PREPROCESS_READS.out.target_enrichment_stats,
-    )
-    SAMPLE_SIMILARITY_QC(rapid_screening.query_sketches)
-    ch_sourmash_gather_csv = rapid_screening.gather_csv
-    ch_sourmash_lineages = rapid_screening.lineages
-    ch_sourmash_tax_reports = rapid_screening.tax_reports
-
+    SAMPLE_SIMILARITY_QC(PREPROCESS_READS.out.profiled_batches_by_sample)
   }
 
   // Short reads retain their minimum-count gate; experimental long-read
@@ -160,7 +146,6 @@ workflow NVD_MAIN {
     ch_taxonomy_dir,
     COMPUTE_RUN_CONTEXT.out.ready,
     ch_run_context,
-    ch_sourmash_tax_reports,
     ch_risk_group_lookup,
     ch_sequence_flow_inputs,
     PREPROCESS_READS.out.raw_fastqc_packages,
@@ -186,21 +171,9 @@ workflow NVD_MAIN {
   ch_run_completed_results = REPORTING.out.completed_results
 
   if (params.experimental == true) {
-    RAPID_SCREENING_EVAL(
-      PREPROCESS_READS.out.read_counts,
-      ch_sourmash_gather_csv,
-      ch_sourmash_tax_reports,
-      ch_sourmash_lineages,
-      REPORTING.out.blast_results,
-      REPORTING.out.crumbs_taxa,
-      REPORTING.out.crumbs_queries,
-      workflow.runName,
-    )
-
     ch_run_completed_results = ch_run_completed_results
       .combine(SAMPLE_SIMILARITY_QC.out.completion)
-      .combine(RAPID_SCREENING_EVAL.out.completion)
-      .map { experiment_results, _sample_similarity_ready, _evaluation_ready -> experiment_results }
+      .map { experiment_results, _sample_similarity_ready -> experiment_results }
   }
 
   ch_completed_sample_ids = REPORTING.out.blast_results

@@ -1,5 +1,5 @@
 include { ADD_READ_COUNTS_TO_BLAST; CONCATENATE_SAMPLE_BLAST_RESULTS; BUILD_QUERY_BIG_TABLE; BUILD_TAXON_BIG_TABLE; CONCATENATE_QUERY_BIG_TABLE; EMIT_BEST_HIT_SEQUENCE_EVIDENCE; CONCATENATE_TAXON_BIG_TABLE; CONCATENATE_EXPERIMENT_BLAST_RESULTS; TARGET_ENRICHMENT_REPORT } from "../modules/utils"
-include { BUILD_SEQUENCE_FLOW; RENDER_CONTIG_ALIGNMENT_PLOTS; RENDER_MERGED_TAXON_ABUNDANCE_SUNBURST; RENDER_TAXON_ABUNDANCE_SUNBURST; RENDER_SOURMASH_SANKEY } from "../modules/reporting"
+include { BUILD_SEQUENCE_FLOW; RENDER_CONTIG_ALIGNMENT_PLOTS } from "../modules/reporting"
 include { CRUMBS_PROFILING } from "./crumbs_profiling"
 include { LIMS_INTEGRATION } from "./lims_integration"
 include { RENDER_CONTIG_COVERAGE_HISTOGRAM } from "../modules/samtools"
@@ -21,7 +21,6 @@ workflow REPORTING {
     ch_taxonomy_dir
     ch_run_ready
     ch_run_context
-    ch_sourmash_tax_reports
     ch_risk_group_lookup
     ch_sequence_flow_inputs
     ch_raw_fastqc_packages
@@ -203,27 +202,6 @@ workflow REPORTING {
         ch_target_enrichment_stats.map { _sample_id, json -> json }.collect()
     )
 
-    if (params.experimental == true) {
-        ch_sourmash_profile_summaries = ch_sourmash_tax_reports
-            .map { sample_id, platform, read_structure, tax_reports ->
-                def report_files = tax_reports instanceof List ? tax_reports : [tax_reports]
-                def summarized_csv = report_files.find { report -> report.name.endsWith(".summarized.csv") }
-                assert summarized_csv : "Missing taxonomic profile summary CSV for ${sample_id}."
-                tuple(sample_id, platform, read_structure, summarized_csv)
-            }
-
-        RENDER_TAXON_ABUNDANCE_SUNBURST(ch_sourmash_profile_summaries)
-        RENDER_SOURMASH_SANKEY(ch_sourmash_profile_summaries)
-
-        ch_merged_taxburst_input = ch_sourmash_profile_summaries
-            .map { sample_id, _platform, _read_structure, profile_summary -> tuple("all", sample_id, profile_summary) }
-            .groupTuple()
-            .map { _key, sample_ids, profile_summaries -> tuple(sample_ids, profile_summaries) }
-
-        RENDER_MERGED_TAXON_ABUNDANCE_SUNBURST(ch_merged_taxburst_input)
-
-    }
-
     LIMS_INTEGRATION(
         ADD_READ_COUNTS_TO_BLAST.out,
         ch_sample_blast_results.for_lims,
@@ -257,9 +235,6 @@ workflow REPORTING {
             .mix(CRUMBS_PROFILING.out.krona)
             .mix(CRUMBS_PROFILING.out.taxburst)
             .mix(CRUMBS_PROFILING.out.merged_taxburst)
-            .mix(RENDER_TAXON_ABUNDANCE_SUNBURST.out.reports)
-            .mix(RENDER_SOURMASH_SANKEY.out.report)
-            .mix(RENDER_MERGED_TAXON_ABUNDANCE_SUNBURST.out.report)
     }
     if (best_hit_sequences_enabled) {
         ch_reporting_terminal_outputs = ch_reporting_terminal_outputs
@@ -295,9 +270,6 @@ workflow REPORTING {
     completed_results = ch_completed_results
     sequence_flow = params.experimental ? BUILD_SEQUENCE_FLOW.out.sequence_flow : channel.empty()
     target_enrichment_report = TARGET_ENRICHMENT_REPORT.out.summary_tsv
-    taxon_abundance_sunbursts = params.experimental ? RENDER_TAXON_ABUNDANCE_SUNBURST.out.reports : channel.empty()
-    merged_taxon_abundance_sunburst = params.experimental ? RENDER_MERGED_TAXON_ABUNDANCE_SUNBURST.out.report : channel.empty()
-    sourmash_sankey_reports = params.experimental ? RENDER_SOURMASH_SANKEY.out.report : channel.empty()
     labkey_log = LIMS_INTEGRATION.out.upload_log
     final_labkey_log = LIMS_INTEGRATION.out.final_labkey_log
     labkey_uploads_done = LIMS_INTEGRATION.out.uploads_done

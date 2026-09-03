@@ -145,7 +145,7 @@ workflow {{
     completed = run_nextflow(workflow, tmp_path, bin_dir)
     diagnostics = f"stdout:\n{completed.stdout}\nstderr:\n{completed.stderr}"
     assert completed.returncode == 0, diagnostics
-    evidence_dir = tmp_path / "results" / "nvd" / "11_best_hit_sequences"
+    evidence_dir = tmp_path / "results" / "nvd" / "10_best_hit_sequences"
     assert sorted(path.name for path in evidence_dir.iterdir()) == [
         "best_hit_placements.bed",
         "query_sequences.fasta",
@@ -198,7 +198,7 @@ workflow {{
     completed = run_nextflow(workflow, tmp_path, bin_dir)
     diagnostics = f"stdout:\n{completed.stdout}\nstderr:\n{completed.stderr}"
     assert completed.returncode == 0, diagnostics
-    evidence_dir = tmp_path / "results" / "nvd" / "11_best_hit_sequences"
+    evidence_dir = tmp_path / "results" / "nvd" / "10_best_hit_sequences"
     assert (evidence_dir / "query_sequences.fasta").read_text(encoding="utf-8") == ""
     assert (evidence_dir / "selected_references.fasta").read_text(
         encoding="utf-8",

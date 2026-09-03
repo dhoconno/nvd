@@ -216,36 +216,6 @@ def run(
         help="Disable target enrichment even when an index source is configured",
         rich_help_panel=PANEL_DATABASES,
     ),
-    sourmash_ref_path: Path | None = typer.Option(
-        None,
-        "--sourmash-ref-path",
-        help="Path to a prebuilt sourmash reference sketch database",
-        rich_help_panel=PANEL_DATABASES,
-    ),
-    sourmash_ref_url: str | None = typer.Option(
-        None,
-        "--sourmash-ref-url",
-        help="URL to download a prebuilt sourmash reference sketch database",
-        rich_help_panel=PANEL_DATABASES,
-    ),
-    sourmash_ref_fasta: Path | None = typer.Option(
-        None,
-        "--sourmash-ref-fasta",
-        help="Local FASTA to sketch as an experimental sourmash reference database",
-        rich_help_panel=PANEL_DATABASES,
-    ),
-    sourmash_lineages_path: Path | None = typer.Option(
-        None,
-        "--sourmash-lineages-path",
-        help="Path to a sourmash taxonomy lineages CSV matching the reference sketch database",
-        rich_help_panel=PANEL_DATABASES,
-    ),
-    sourmash_lineages_url: str | None = typer.Option(
-        None,
-        "--sourmash-lineages-url",
-        help="URL to download a sourmash taxonomy lineages CSV matching the reference sketch database",
-        rich_help_panel=PANEL_DATABASES,
-    ),
     sourmash_ksize: int | None = typer.Option(
         None,
         "--sourmash-ksize",
@@ -256,12 +226,6 @@ def run(
         None,
         "--sourmash-scaled",
         help="Scaled value for experimental sourmash sketching (default: 50)",
-        rich_help_panel=PANEL_DATABASES,
-    ),
-    sourmash_threshold_bp: int | None = typer.Option(
-        None,
-        "--sourmash-threshold-bp",
-        help="Minimum estimated base-pair overlap for experimental sourmash gather (default: 50)",
         rich_help_panel=PANEL_DATABASES,
     ),
     virus_kmer_size: int | None = typer.Option(
@@ -639,14 +603,8 @@ def run(
         "virus_window_size": virus_window_size,
         "virus_abs_threshold": virus_abs_threshold,
         "virus_rel_threshold": virus_rel_threshold,
-        "sourmash_ref_path": sourmash_ref_path,
-        "sourmash_ref_url": sourmash_ref_url,
-        "sourmash_ref_fasta": sourmash_ref_fasta,
-        "sourmash_lineages_path": sourmash_lineages_path,
-        "sourmash_lineages_url": sourmash_lineages_url,
         "sourmash_ksize": sourmash_ksize,
         "sourmash_scaled": sourmash_scaled,
-        "sourmash_threshold_bp": sourmash_threshold_bp,
         # Reference versions
         "blast_db_version": blast_db_version,
         # Analysis

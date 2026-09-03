@@ -314,7 +314,7 @@ workflow PREPROCESS_READS {
     // An ordinary groupTuple cannot tell when one sample is complete and waits
     // for its input channel to close. groupKey supplies the known count of one
     // or two batches, allowing each complete sample to continue immediately to
-    // assembly, mapback, and sourmash. Keeping QC batch-based preserves its
+    // assembly, mapback, and similarity QC. Keeping QC batch-based preserves its
     // existing parallelism and cache reuse; grouping once here also ensures all
     // three consumers see the same available post-QC reads. If an ignored task
     // drops one batch, remainder keeps the surviving batch for best-effort work
@@ -359,7 +359,7 @@ workflow PREPROCESS_READS {
             // this sample, including all query classes that survived QC.
             def sequence_count = ordered_batches.collect { batch -> batch.meta.sequence_count }.sum()
             // Keep the per-batch metadata and files, but provide shared sample
-            // metadata once for assembly, mapback, and sourmash.
+            // metadata once for assembly, mapback, and similarity QC.
             tuple(
                 [
                     id: sample[0],
