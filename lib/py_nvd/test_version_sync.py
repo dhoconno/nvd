@@ -48,6 +48,24 @@ def test_read_entropy_defaults_match_runtime_and_schema() -> None:
     assert latest_schema["properties"]["min_read_entropy"]["default"] == 0.5
 
 
+def test_preprocess_param_is_gone() -> None:
+    """preprocess was never read by the pipeline and is removed in v3.4.0."""
+    nextflow_config = (ROOT / "nextflow.config").read_text(encoding="utf-8")
+    latest_schema = json.loads(
+        (ROOT / "schemas" / "nvd-params.latest.schema.json").read_text(
+            encoding="utf-8",
+        ),
+    )
+
+    assert not re.search(
+        r"^\s*preprocess\s*=",
+        nextflow_config,
+        re.MULTILINE,
+    ), "nextflow.config still declares the removed preprocess param"
+    assert "preprocess" not in latest_schema["properties"]
+    assert "preprocess" not in NvdParams.model_fields
+
+
 def test_latest_params_schema_points_to_v3_4() -> None:
     """The rolling schema link should expose the v3.4 parameter contract."""
     latest_schema = ROOT / "schemas" / "nvd-params.latest.schema.json"

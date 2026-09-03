@@ -274,7 +274,6 @@ def _yaml_analysis_section(
     # Preprocessing
     lines.append("# === Preprocessing ===")
     preprocess_params = [
-        "preprocess",
         "dedup",
         "dedup_seq",
         "dedup_pos",
@@ -286,13 +285,7 @@ def _yaml_analysis_section(
     ]
     for name in preprocess_params:
         if name in properties:
-            prop = properties[name]
-            if name == "preprocess":
-                default = prop.get("default")
-                desc = prop.get("description", "")
-                lines.append(f"{name}: {_format_yaml_value(default)}  # {desc}")
-            else:
-                lines.append(_format_commented_param(name, prop))
+            lines.append(_format_commented_param(name, properties[name]))
     lines.append("")
 
 
@@ -439,7 +432,6 @@ def _generate_json_template(path: Path, _schema: dict, schema_url: str) -> None:
         "cutoff_percent": 0.001,
         "entropy": 0.9,
         "tax_stringency": 0.7,
-        "preprocess": False,
     }
 
     with open(path, "w", encoding="utf-8") as f:

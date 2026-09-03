@@ -8,8 +8,16 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.dataclasses import dataclass
+
+# Params deleted in v3.4.0, mapped to why. extra="forbid" would otherwise reject
+# these with a bare "Extra inputs are not permitted", leaving someone with a
+# preset registered under an older release to guess at the cause. Entries can be
+# dropped once upgrades from v3.3.x are no longer a concern.
+REMOVED_PARAMS: dict[str, str] = {
+    "preprocess": "it has no effect; the pipeline never read it",
+}
 
 
 @dataclass(frozen=True)
@@ -77,6 +85,26 @@ class NvdParams(BaseModel):
     """All parameters for an NVD pipeline run."""
 
     model_config = ConfigDict(extra="forbid")
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_removed_params(cls, data: Any) -> Any:  # noqa: ANN401  # pydantic hook
+        """Explain removed params instead of letting extra="forbid" reject them."""
+        if not isinstance(data, dict):
+            return data
+
+        removed = [name for name in REMOVED_PARAMS if name in data]
+        if removed:
+            details = "; ".join(
+                f"{name} ({REMOVED_PARAMS[name]})" for name in sorted(removed)
+            )
+            msg = (
+                f"Removed in NVD v3.4.0 and no longer accepted: {details}. "
+                f"Delete {'them' if len(removed) > 1 else 'it'} from your params "
+                f"file or preset."
+            )
+            raise ValueError(msg)
+        return data
 
     samplesheet: Path | None = Field(
         None,
@@ -234,11 +262,6 @@ class NvdParams(BaseModel):
         50,
         description="Minimum estimated base-pair overlap for experimental sourmash gather",
         json_schema_extra={"category": "Databases"},
-    )
-    preprocess: bool = Field(
-        default=False,
-        description="Enable all preprocessing steps",
-        json_schema_extra={"category": "Preprocessing"},
     )
     merge_pairs: bool = Field(
         default=False,

@@ -351,12 +351,6 @@ def run(
     # -------------------------------------------------------------------------
     # Read Preprocessing
     # -------------------------------------------------------------------------
-    preprocess: bool | None = typer.Option(
-        None,
-        "--preprocess/--no-preprocess",
-        help="Enable default preprocessing steps",
-        rich_help_panel=PANEL_PREPROCESSING,
-    ),
     dedup: bool | None = typer.Option(
         None,
         "--dedup",
@@ -378,7 +372,7 @@ def run(
     trim_adapters: bool | None = typer.Option(
         None,
         "--trim-adapters/--no-trim-adapters",
-        help="Trim Illumina adapters (default: follows --preprocess)",
+        help="Trim Illumina adapters (default: off)",
         rich_help_panel=PANEL_PREPROCESSING,
     ),
     merge_pairs: bool | None = typer.Option(
@@ -408,7 +402,7 @@ def run(
     filter_reads: bool | None = typer.Option(
         None,
         "--filter-reads/--no-filter-reads",
-        help="Filter reads by quality/length (default: follows --preprocess)",
+        help="Filter reads by quality/length (default: off)",
         rich_help_panel=PANEL_PREPROCESSING,
     ),
     filter_low_complexity_reads: bool | None = typer.Option(
@@ -653,7 +647,6 @@ def run(
         "include_children": include_children,
         "max_concurrent_downloads": max_concurrent_downloads,
         # Preprocessing
-        "preprocess": preprocess,
         "dedup": dedup,
         "dedup_seq": dedup_seq,
         "dedup_pos": dedup_pos,

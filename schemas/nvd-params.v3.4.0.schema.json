@@ -198,11 +198,6 @@
       "minimum": 0,
       "description": "Minimum estimated base-pair overlap for experimental sourmash gather"
     },
-    "preprocess": {
-      "type": "boolean",
-      "default": false,
-      "description": "Enable default preprocessing steps before classification"
-    },
     "merge_pairs": {
       "type": "boolean",
       "default": false,

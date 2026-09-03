@@ -20,7 +20,7 @@ class TestNvdParamsInstantiation:
     def test_minimal_instantiation(self) -> None:
         """Can create NvdParams with no arguments (all defaults)."""
         p = NvdParams()
-        assert p.preprocess is False
+        assert p.merge_pairs is False
         assert p.cutoff_percent == 0.001
 
     def test_with_required_fields(self) -> None:
@@ -49,7 +49,6 @@ class TestNvdParamsInstantiation:
             blast_db=Path("/db/blast"),
             blast_db_prefix="nt",
             # Preprocessing
-            preprocess=True,
             dedup=True,
             dedup_seq=True,
             dedup_pos=True,
@@ -68,6 +67,27 @@ class TestNvdParamsInstantiation:
         assert p.host_index == Path("/db/host.idx")
         assert p.cutoff_percent == 0.01
         assert p.labkey is True
+
+
+class TestRemovedParams:
+    """Params deleted in v3.4.0 should fail with a message that explains why."""
+
+    def test_preprocess_names_the_release_and_the_reason(self) -> None:
+        """A stale preset carrying preprocess should not get a bare pydantic error."""
+        with pytest.raises(ValidationError) as excinfo:
+            NvdParams(preprocess=True)
+
+        message = str(excinfo.value)
+        assert "preprocess" in message
+        assert "v3.4.0" in message
+        assert "no effect" in message
+
+    def test_unknown_params_still_get_the_ordinary_error(self) -> None:
+        """The removal notice must not swallow genuine typos."""
+        with pytest.raises(ValidationError) as excinfo:
+            NvdParams(not_a_real_param=True)
+
+        assert "v3.4.0" not in str(excinfo.value)
 
 
 class TestNvdParamsRangeValidators:
@@ -414,11 +434,11 @@ class TestNvdParamsToNextflowArgs:
 
     def test_bool_to_string(self) -> None:
         """Booleans are converted to 'true'/'false' strings."""
-        p = NvdParams(preprocess=True, labkey=False)
+        p = NvdParams(merge_pairs=True, labkey=False)
         cmd = p.to_nextflow_args(Path("/pipeline"))
-        # Find the value after --preprocess
-        preprocess_idx = cmd.index("--preprocess")
-        assert cmd[preprocess_idx + 1] == "true"
+        # Find the value after --merge_pairs
+        merge_pairs_idx = cmd.index("--merge_pairs")
+        assert cmd[merge_pairs_idx + 1] == "true"
         labkey_idx = cmd.index("--labkey")
         assert cmd[labkey_idx + 1] == "false"
 
@@ -560,10 +580,6 @@ class TestNvdParamsDefaults:
     def test_default_max_blast_targets(self) -> None:
         """Default max_blast_targets matches nextflow.config."""
         assert NvdParams().max_blast_targets == 100
-
-    def test_default_preprocess(self) -> None:
-        """Default preprocess matches nextflow.config."""
-        assert NvdParams().preprocess is False
 
     def test_default_merge_pairs(self) -> None:
         """Default merge_pairs matches nextflow.config."""
