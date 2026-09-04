@@ -85,7 +85,7 @@ process MAP_PAIRED_READS {
         "--fastq-input 'single_read' 'single_reads' ${read_file}"
     })
     def dedup_flag = should_dedup_pos ? "--dedup-pos" : ""
-    def unmapped_flag = params.experimental ? "--extract-unmapped" : ""
+    def unmapped_flag = params.skip_unassembled_read_queries ? "" : "--extract-unmapped"
     """
     map_paired_reads_to_contigs.py \
         --sample-id '${sample_id}' \

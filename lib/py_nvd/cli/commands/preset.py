@@ -156,11 +156,6 @@ def preset_register(
         help="Taxonomy stringency",
     ),
     entropy: float | None = typer.Option(None, "--entropy", help="Entropy threshold"),
-    preprocess: bool | None = typer.Option(
-        None,
-        "--preprocess/--no-preprocess",
-        help="Enable preprocessing",
-    ),
     dedup: bool | None = typer.Option(
         None,
         "--dedup",
@@ -280,7 +275,7 @@ def preset_register(
         nvd preset register production --from-file prod.yaml -d "Production settings"
 
         # Register with inline parameters
-        nvd preset register quick-test --cutoff-percent 0.01 --preprocess
+        nvd preset register quick-test --cutoff-percent 0.01 --dedup
 
         # Update existing preset
         nvd preset register production --from-file updated.yaml
@@ -297,7 +292,6 @@ def preset_register(
         "cutoff_percent": cutoff_percent,
         "tax_stringency": tax_stringency,
         "entropy": entropy,
-        "preprocess": preprocess,
         "dedup": dedup,
         "dedup_seq": dedup_seq,
         "dedup_pos": dedup_pos,

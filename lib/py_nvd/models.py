@@ -6,10 +6,23 @@ import json
 import re
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.dataclasses import dataclass
+
+# Params deleted in v3.4.0, mapped to why. extra="forbid" would otherwise reject
+# these with a bare "Extra inputs are not permitted", leaving someone with a
+# preset registered under an older release to guess at the cause. Entries can be
+# dropped once upgrades from v3.3.x are no longer a concern.
+REMOVED_PARAMS: dict[str, str] = {
+    "preprocess": "it has no effect; the pipeline never read it",
+    "sourmash_ref_path": "sourmash rapid screening was removed",
+    "sourmash_ref_url": "sourmash rapid screening was removed",
+    "sourmash_ref_fasta": "sourmash rapid screening was removed",
+    "sourmash_lineages_path": "sourmash rapid screening was removed",
+    "sourmash_lineages_url": "sourmash rapid screening was removed",
+    "sourmash_threshold_bp": "sourmash rapid screening was removed",
+}
 
 
 @dataclass(frozen=True)
@@ -78,6 +91,26 @@ class NvdParams(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    @model_validator(mode="before")
+    @classmethod
+    def reject_removed_params(cls, data: Any) -> Any:  # noqa: ANN401  # pydantic hook
+        """Explain removed params instead of letting extra="forbid" reject them."""
+        if not isinstance(data, dict):
+            return data
+
+        removed = [name for name in REMOVED_PARAMS if name in data]
+        if removed:
+            details = "; ".join(
+                f"{name} ({REMOVED_PARAMS[name]})" for name in sorted(removed)
+            )
+            msg = (
+                f"Removed in NVD v3.4.0 and no longer accepted: {details}. "
+                f"Delete {'them' if len(removed) > 1 else 'it'} from your params "
+                f"file or preset."
+            )
+            raise ValueError(msg)
+        return data
+
     samplesheet: Path | None = Field(
         None,
         description="Path to samplesheet CSV",
@@ -121,6 +154,19 @@ class NvdParams(BaseModel):
     skip_blast: bool = Field(
         default=False,
         description="Skip MEGABLAST and BLASTN contig search.",
+        json_schema_extra={"category": "Core"},
+    )
+    skip_fastqc: bool = Field(
+        default=False,
+        description="Skip per-file raw-read FastQC.",
+        json_schema_extra={"category": "Core"},
+    )
+    skip_unassembled_read_queries: bool = Field(
+        default=False,
+        description=(
+            "Skip BLAST querying of unassembled reads, leaving assembly contigs "
+            "as the only query classes."
+        ),
         json_schema_extra={"category": "Core"},
     )
 
@@ -190,31 +236,6 @@ class NvdParams(BaseModel):
         description="Minimum relative proportion of minimizers for virus read enrichment (0.0-1.0)",
         json_schema_extra={"category": "Databases"},
     )
-    sourmash_ref_path: Path | None = Field(
-        None,
-        description="Path to a prebuilt sourmash reference sketch database",
-        json_schema_extra={"category": "Databases"},
-    )
-    sourmash_ref_url: str | None = Field(
-        None,
-        description="URL to download a prebuilt sourmash reference sketch database",
-        json_schema_extra={"category": "Databases"},
-    )
-    sourmash_ref_fasta: Path | None = Field(
-        None,
-        description="Local FASTA to sketch as an experimental sourmash reference database",
-        json_schema_extra={"category": "Databases"},
-    )
-    sourmash_lineages_path: Path | None = Field(
-        None,
-        description="Path to a sourmash taxonomy lineages CSV matching the reference sketch database",
-        json_schema_extra={"category": "Databases"},
-    )
-    sourmash_lineages_url: str | None = Field(
-        None,
-        description="URL to download a sourmash taxonomy lineages CSV matching the reference sketch database",
-        json_schema_extra={"category": "Databases"},
-    )
     sourmash_ksize: int = Field(
         31,
         description="K-mer size for experimental sourmash sketching",
@@ -225,19 +246,12 @@ class NvdParams(BaseModel):
         description="Scaled value for experimental sourmash sketching",
         json_schema_extra={"category": "Databases"},
     )
-    sourmash_threshold_bp: int = Field(
-        50,
-        description="Minimum estimated base-pair overlap for experimental sourmash gather",
-        json_schema_extra={"category": "Databases"},
-    )
-    preprocess: bool = Field(
-        default=False,
-        description="Enable all preprocessing steps",
-        json_schema_extra={"category": "Preprocessing"},
-    )
     merge_pairs: bool = Field(
-        default=False,
-        description="Merge overlapping paired-end reads before contig mapback",
+        default=True,
+        description=(
+            "Merge overlapping paired-end reads before contig mapback "
+            "(on by default; disable with --no-merge-pairs)"
+        ),
         json_schema_extra={"category": "Preprocessing"},
     )
     dedup: bool = Field(
@@ -407,6 +421,14 @@ class NvdParams(BaseModel):
         description="LabKey list name for BLAST metagenomic hits",
         json_schema_extra={"category": "LabKey"},
     )
+    labkey_insert_batch_size: int = Field(
+        1000,
+        description=(
+            "Rows per LabKey insert call; large read-query payloads can hang "
+            "the server when sent as one request"
+        ),
+        json_schema_extra={"category": "LabKey"},
+    )
     labkey_blast_fasta_list: str | None = Field(
         None,
         description="LabKey list name for BLAST FASTA results",
@@ -488,6 +510,7 @@ class NvdParams(BaseModel):
         "min_consecutive_bases",
         "min_read_length",
         "max_concurrent_downloads",
+        "labkey_insert_batch_size",
         "host_kmer_size",
         "host_window_size",
         "host_abs_threshold",
@@ -510,15 +533,6 @@ class NvdParams(BaseModel):
     @classmethod
     def validate_non_negative_int(cls, v: int) -> int:
         """Validate that value is non-negative."""
-        if v < 0:
-            msg = f"Must be >= 0, got {v}"
-            raise ValueError(msg)
-        return v
-
-    @field_validator("sourmash_threshold_bp")
-    @classmethod
-    def validate_non_negative_sourmash_threshold(cls, v: int) -> int:
-        """Validate sourmash_threshold_bp is non-negative."""
         if v < 0:
             msg = f"Must be >= 0, got {v}"
             raise ValueError(msg)
@@ -548,35 +562,6 @@ class NvdParams(BaseModel):
         """Validate admin taxonomy refresh policy."""
         if v not in {"missing", "stale", "force"}:
             msg = "taxonomy_refresh must be one of ['force', 'missing', 'stale']"
-            raise ValueError(msg)
-        return v
-
-    @field_validator(
-        "sourmash_ref_path",
-        "sourmash_ref_fasta",
-        "sourmash_lineages_path",
-        mode="before",
-    )
-    @classmethod
-    def validate_not_url_path(cls, v: object) -> object:
-        """Validate that local sourmash path params are not URLs."""
-        if v is None:
-            return v
-        parsed = urlparse(str(v))
-        if parsed.scheme in {"http", "https"}:
-            msg = "Use the corresponding *_url param for remote sourmash resources"
-            raise ValueError(msg)
-        return v
-
-    @field_validator("sourmash_ref_url", "sourmash_lineages_url")
-    @classmethod
-    def validate_url(cls, v: str | None) -> str | None:
-        """Validate that sourmash URL params are HTTP(S) URLs."""
-        if v is None:
-            return v
-        parsed = urlparse(v)
-        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-            msg = f"Expected an HTTP(S) URL, got {v}"
             raise ValueError(msg)
         return v
 

@@ -48,13 +48,77 @@ def test_read_entropy_defaults_match_runtime_and_schema() -> None:
     assert latest_schema["properties"]["min_read_entropy"]["default"] == 0.5
 
 
-def test_latest_params_schema_points_to_v3_3_2() -> None:
-    """The rolling schema link should expose the corrected v3.3 defaults."""
+def test_merge_pairs_default_matches_runtime_and_schema() -> None:
+    """Pair merging is on by default in Nextflow, the model, and the schema."""
+    nextflow_config = (ROOT / "nextflow.config").read_text(encoding="utf-8")
+    config_match = re.search(
+        r"^\s*merge_pairs\s*=\s*(\w+)",
+        nextflow_config,
+        re.MULTILINE,
+    )
+    latest_schema = json.loads(
+        (ROOT / "schemas" / "nvd-params.latest.schema.json").read_text(
+            encoding="utf-8",
+        ),
+    )
+
+    assert config_match is not None, "nextflow.config merge_pairs is missing"
+    assert config_match.group(1) == "true"
+    assert NvdParams().merge_pairs is True
+    assert latest_schema["properties"]["merge_pairs"]["default"] is True
+
+
+def test_skip_unassembled_read_queries_is_declared_everywhere() -> None:
+    """The read-query skip exists in Nextflow, the model, and the schema."""
+    nextflow_config = (ROOT / "nextflow.config").read_text(encoding="utf-8")
+    config_match = re.search(
+        r"^\s*skip_unassembled_read_queries\s*=\s*(\S+)",
+        nextflow_config,
+        re.MULTILINE,
+    )
+    latest_schema = json.loads(
+        (ROOT / "schemas" / "nvd-params.latest.schema.json").read_text(
+            encoding="utf-8",
+        ),
+    )
+
+    assert config_match is not None, (
+        "nextflow.config skip_unassembled_read_queries is missing"
+    )
+    # null keeps bare `--skip_unassembled_read_queries` usable as a Nextflow flag,
+    # matching the other skip_* params.
+    assert config_match.group(1) == "null"
+    assert NvdParams().skip_unassembled_read_queries is False
+    assert (
+        latest_schema["properties"]["skip_unassembled_read_queries"]["default"] is False
+    )
+
+
+def test_preprocess_param_is_gone() -> None:
+    """preprocess was never read by the pipeline and is removed in v3.4.0."""
+    nextflow_config = (ROOT / "nextflow.config").read_text(encoding="utf-8")
+    latest_schema = json.loads(
+        (ROOT / "schemas" / "nvd-params.latest.schema.json").read_text(
+            encoding="utf-8",
+        ),
+    )
+
+    assert not re.search(
+        r"^\s*preprocess\s*=",
+        nextflow_config,
+        re.MULTILINE,
+    ), "nextflow.config still declares the removed preprocess param"
+    assert "preprocess" not in latest_schema["properties"]
+    assert "preprocess" not in NvdParams.model_fields
+
+
+def test_latest_params_schema_points_to_v3_4() -> None:
+    """The rolling schema link should expose the v3.4 parameter contract."""
     latest_schema = ROOT / "schemas" / "nvd-params.latest.schema.json"
 
     assert latest_schema.is_symlink()
-    assert latest_schema.readlink() == Path("nvd-params.v3.3.2.schema.json")
-    assert SCHEMA_URL.endswith("/nvd-params.v3.3.2.schema.json")
+    assert latest_schema.readlink() == Path("nvd-params.v3.4.0.schema.json")
+    assert SCHEMA_URL.endswith("/nvd-params.v3.4.0.schema.json")
 
 
 def test_v3_3_2_schema_corrects_only_the_read_entropy_default() -> None:

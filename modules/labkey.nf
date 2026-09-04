@@ -246,6 +246,7 @@ process LABKEY_UPLOAD_BLAST {
         --labkey-api-key \$LABKEY_API_KEY \
         --labkey-schema '${params.labkey_schema}' \
         --table-name '${params.labkey_blast_meta_hits_list}' \
+        --insert-batch-size '${params.labkey_insert_batch_size}' \
         --blast-retention-count '${params.blast_retention_count}'
     """
 }
@@ -273,6 +274,7 @@ process LABKEY_UPLOAD_FASTA {
         --labkey-project-name '${params.labkey_project_name}' \
         --labkey-api-key \$LABKEY_API_KEY \
         --labkey-schema '${params.labkey_schema}' \
-        --table-name '${params.labkey_blast_fasta_list}'
+        --table-name '${params.labkey_blast_fasta_list}' \
+        --insert-batch-size '${params.labkey_insert_batch_size}'
     """
 }

@@ -33,23 +33,6 @@ REFERENCE_TAXIDS = {
     "NC_063383.1": 10244,
 }
 
-SOURMASH_LINEAGES = {
-    "NC_005336.1": {
-        "genus": "Parapoxvirus",
-        "species": "Orf virus",
-        "taxpath": "10239|2732408|2732506|2732544|10240|10255|10258",
-    },
-    "NC_003310.1": {
-        "genus": "Orthopoxvirus",
-        "species": "Monkeypox virus",
-        "taxpath": "10239|2732408|2732506|2732544|10240|10242|10244",
-    },
-    "NC_063383.1": {
-        "genus": "Orthopoxvirus",
-        "species": "Monkeypox virus",
-        "taxpath": "10239|2732408|2732506|2732544|10240|10242|10244",
-    },
-}
 
 SRA_RUNS = (
     {
@@ -104,7 +87,6 @@ class FixturePaths:
     manifest: Path
     deacon_index: Path
     blast_prefix: Path
-    sourmash_lineages: Path
 
 
 def parse_args() -> argparse.Namespace:
@@ -129,7 +111,6 @@ def fixture_paths(data_dir: Path) -> FixturePaths:
         manifest=data_dir / "reference.manifest.json",
         deacon_index=data_dir / "mini_virus_deacon.k31w1.idx",
         blast_prefix=data_dir / "mini_virus_blast",
-        sourmash_lineages=data_dir / "mini_sourmash_lineages.csv",
     )
 
 
@@ -181,37 +162,12 @@ def write_blast_taxid_map(paths: FixturePaths) -> None:
     paths.blast_taxid_map.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def write_sourmash_lineages(paths: FixturePaths) -> None:
-    lines = [
-        "ident,superkingdom,phylum,class,order,family,genus,species,taxpath",
-    ]
-    for accession in REFERENCE_ACCESSIONS:
-        lineage = SOURMASH_LINEAGES[accession]
-        lines.append(
-            ",".join(
-                [
-                    accession,
-                    "Viruses",
-                    "Nucleocytoviricota",
-                    "Pokkesviricetes",
-                    "Chitovirales",
-                    "Poxviridae",
-                    lineage["genus"],
-                    lineage["species"],
-                    lineage["taxpath"],
-                ],
-            ),
-        )
-    paths.sourmash_lineages.write_text("\n".join(lines) + "\n", encoding="utf-8")
-
-
 def remove_previous_outputs(paths: FixturePaths) -> None:
     for path in (
         paths.reference_fasta,
         paths.samplesheet,
         paths.manifest,
         paths.deacon_index,
-        paths.sourmash_lineages,
     ):
         if path.exists():
             path.unlink()
@@ -243,7 +199,6 @@ def collect_files(paths: FixturePaths) -> list[Path]:
         paths.reference_fasta,
         paths.samplesheet,
         paths.deacon_index,
-        paths.sourmash_lineages,
         *sorted(paths.data_dir.glob(f"{paths.blast_prefix.name}.*")),
     ]
     return [path for path in generated if path.exists()]
@@ -298,7 +253,6 @@ def main() -> None:
     reference_url = fetch_reference_fasta(paths)
     write_samplesheet(paths)
     write_blast_taxid_map(paths)
-    write_sourmash_lineages(paths)
 
     commands = [
         [

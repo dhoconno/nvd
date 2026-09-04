@@ -18,8 +18,6 @@ DATA = ROOT / "tests" / "data"
 MANIFEST = DATA / "reference.manifest.json"
 SAMPLESHEET = DATA / "integration_sra_samplesheet.csv"
 DEACON_INDEX = DATA / "mini_virus_deacon.k31w1.idx"
-SOURMASH_REF_FASTA = DATA / "mini_virus_reference.fasta"
-SOURMASH_LINEAGES = DATA / "mini_sourmash_lineages.csv"
 BLAST_DB_PREFIX = "mini_virus_blast"
 BLAST_DB = DATA
 E2E_OUTPUT_DIR = ROOT / ".e2e"
@@ -61,9 +59,11 @@ def write_mini_taxdump(taxonomy_dir: Path) -> None:
 2732544\t|\t2732506\t|\torder\t|\t
 10240\t|\t2732544\t|\tfamily\t|\t
 10242\t|\t10240\t|\tgenus\t|\t
-10244\t|\t10242\t|\tspecies\t|\t
+3431483\t|\t10242\t|\tspecies\t|\t
+10244\t|\t3431483\t|\tno rank\t|\t
 10255\t|\t10240\t|\tgenus\t|\t
-10258\t|\t10255\t|\tspecies\t|\t
+3431389\t|\t10255\t|\tspecies\t|\t
+10258\t|\t3431389\t|\tno rank\t|\t
 """,
         encoding="utf-8",
     )
@@ -76,8 +76,10 @@ def write_mini_taxdump(taxonomy_dir: Path) -> None:
 2732544\t|\tChitovirales\t|\t\t|\tscientific name\t|
 10240\t|\tPoxviridae\t|\t\t|\tscientific name\t|
 10242\t|\tOrthopoxvirus\t|\t\t|\tscientific name\t|
+3431483\t|\tOrthopoxvirus monkeypox\t|\t\t|\tscientific name\t|
 10244\t|\tMonkeypox virus\t|\t\t|\tscientific name\t|
 10255\t|\tParapoxvirus\t|\t\t|\tscientific name\t|
+3431389\t|\tParapoxvirus orf\t|\t\t|\tscientific name\t|
 10258\t|\tOrf virus\t|\t\t|\tscientific name\t|
 """,
         encoding="utf-8",
@@ -136,145 +138,6 @@ def test_selected_manifest_sra_runs_follow_samplesheet_rows(tmp_path: Path) -> N
     ]
 
 
-def test_mini_sourmash_lineages_support_bioboxes() -> None:
-    """The mini sourmash taxonomy fixture must include BioBoxes taxpaths."""
-    with SOURMASH_LINEAGES.open(newline="", encoding="utf-8") as handle:
-        rows = list(csv.DictReader(handle))
-
-    ranks = (
-        "superkingdom",
-        "phylum",
-        "class",
-        "order",
-        "family",
-        "genus",
-        "species",
-        "strain",
-    )
-    assert rows, f"No sourmash lineage rows found in {SOURMASH_LINEAGES}"
-    for row in rows:
-        taxpath = row.get("taxpath", "")
-        taxids = taxpath.split("|") if taxpath else []
-        assert len(taxids) == len(ranks), row
-        for rank, taxid in zip(ranks, taxids, strict=True):
-            assert bool(row.get(rank)) == bool(taxid), row
-
-
-def run_sourmash(*args: str | Path) -> subprocess.CompletedProcess[str]:
-    """Run sourmash from the test environment."""
-    return subprocess.run(  # noqa: S603
-        ["sourmash", *(str(arg) for arg in args)],  # noqa: S607
-        cwd=ROOT,
-        check=False,
-        text=True,
-        capture_output=True,
-        timeout=120,
-    )
-
-
-def test_sourmash_tax_metagenome_writes_all_formats_with_strain_taxids(
-    tmp_path: Path,
-) -> None:
-    """Sourmash 4.9.4 consumes the complete positional taxonomy contract."""
-    query = tmp_path / "query.sig.zip"
-    reference = tmp_path / "reference.sig.zip"
-    gather = tmp_path / "gather.csv"
-    output_base = tmp_path / "profile"
-    commands = [
-        (
-            "sketch",
-            "dna",
-            SOURMASH_REF_FASTA,
-            "-p",
-            "dna,k=31,scaled=50,abund",
-            "-o",
-            query,
-        ),
-        (
-            "sketch",
-            "dna",
-            SOURMASH_REF_FASTA,
-            "--singleton",
-            "-p",
-            "dna,k=31,scaled=50",
-            "-o",
-            reference,
-        ),
-        (
-            "gather",
-            query,
-            reference,
-            "-k",
-            "31",
-            "--scaled",
-            "50",
-            "-o",
-            gather,
-        ),
-        (
-            "tax",
-            "metagenome",
-            "--gather-csv",
-            gather,
-            "--taxonomy-csv",
-            SOURMASH_LINEAGES,
-            "--keep-identifier-versions",
-            "--use-abundances",
-            "--output-format",
-            "csv_summary",
-            "lineage_summary",
-            "krona",
-            "kreport",
-            "bioboxes",
-            "--rank",
-            "species",
-            "--output-base",
-            output_base,
-        ),
-    ]
-
-    for command in commands:
-        result = run_sourmash(*command)
-        assert result.returncode == 0, result.stderr
-
-    outputs = (
-        tmp_path / "profile.summarized.csv",
-        tmp_path / "profile.lineage_summary.tsv",
-        tmp_path / "profile.krona.tsv",
-        tmp_path / "profile.kreport.txt",
-        tmp_path / "profile.bioboxes.profile",
-    )
-    for output in outputs:
-        assert output.stat().st_size > 0, output
-
-    bioboxes_lines = outputs[-1].read_text(encoding="utf-8").splitlines()
-    assert not any("None" in line for line in bioboxes_lines)
-    profile_rows = [
-        line.split("\t")
-        for line in bioboxes_lines
-        if line and not line.startswith(("#", "@"))
-    ]
-    assert profile_rows
-    rank_order = (
-        "superkingdom",
-        "phylum",
-        "class",
-        "order",
-        "family",
-        "genus",
-        "species",
-        "strain",
-    )
-    for taxid, rank, taxpath, taxpath_names, percentage in profile_rows:
-        taxids = taxpath.split("|")
-        names = taxpath_names.split("|")
-        assert taxid == taxids[-1]
-        assert rank == rank_order[len(taxids) - 1]
-        assert len(taxids) == len(names)
-        assert all(taxids)
-        assert 0 <= float(percentage) <= 100  # noqa: PLR2004
-
-
 def test_mini_nvd_taxdump_preserves_noncanonical_virus_root_rank(
     tmp_path: Path,
 ) -> None:
@@ -326,6 +189,92 @@ def assert_concatenated_tsv(output: Path, inputs: list[Path]) -> None:
     output_header, output_rows = read_tsv_document(output)
     assert output_header == expected_header
     assert output_rows == expected_rows
+
+
+def read_fasta_records(path: Path) -> dict[str, str]:
+    records: dict[str, str] = {}
+    current_id: str | None = None
+    sequence_lines = 0
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        if raw_line.startswith(">"):
+            current_id = raw_line[1:].split(maxsplit=1)[0]
+            assert current_id not in records, (
+                f"Duplicate FASTA ID {current_id} in {path}"
+            )
+            records[current_id] = ""
+            sequence_lines = 0
+        else:
+            assert current_id is not None, f"Sequence before FASTA header in {path}"
+            sequence_lines += 1
+            assert sequence_lines == 1, (
+                f"Wrapped FASTA sequence for {current_id} in {path}"
+            )
+            records[current_id] += raw_line
+    return records
+
+
+def assert_best_hit_sequence_evidence_outputs(results_root: Path) -> None:
+    best_hit_sequences_dir = results_root / "10_best_hit_sequences"
+    expected_artifacts = {
+        "query_sequences.fasta",
+        "selected_references.fasta",
+        "best_hit_placements.bed",
+    }
+    assert best_hit_sequences_dir.is_dir(), (
+        f"Missing best-hit sequence evidence directory: {best_hit_sequences_dir}"
+    )
+    assert {
+        path.name
+        for path in best_hit_sequences_dir.iterdir()
+        if path.is_file() and path.name != "versions.yml"
+    } == expected_artifacts
+    qbt_rows = read_tsv_rows(results_root / "query_big_table.tsv")
+    assert qbt_rows, "Missing Query Big Table rows for best-hit sequence evidence"
+    query_fasta_ids = set(
+        read_fasta_records(best_hit_sequences_dir / "query_sequences.fasta"),
+    )
+    reference_fasta_ids = set(
+        read_fasta_records(best_hit_sequences_dir / "selected_references.fasta"),
+    )
+    expected_query_ids = {f"{row['sample_id']}|{row['qseqid']}" for row in qbt_rows}
+    expected_reference_ids = {row["best_hit_reference_accession"] for row in qbt_rows}
+    assert query_fasta_ids == expected_query_ids
+    assert reference_fasta_ids == expected_reference_ids
+
+    strand_map = {"plus": "+", "minus": "-", "+": "+", "-": "-"}
+    expected_bed_rows = sorted(
+        [
+            [
+                row["best_hit_reference_accession"],
+                str(
+                    min(
+                        int(row["best_hit_reference_start_1based"]),
+                        int(row["best_hit_reference_end_1based"]),
+                    )
+                    - 1,
+                ),
+                str(
+                    max(
+                        int(row["best_hit_reference_start_1based"]),
+                        int(row["best_hit_reference_end_1based"]),
+                    ),
+                ),
+                f"{row['sample_id']}|{row['qseqid']}",
+                "0",
+                strand_map[row["best_hit_reference_strand"]],
+            ]
+            for row in qbt_rows
+        ],
+        key=lambda row: (row[0], int(row[1]), int(row[2]), row[3], row[5]),
+    )
+    observed_bed_rows = [
+        line.split("\t")
+        for line in (best_hit_sequences_dir / "best_hit_placements.bed")
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if line
+    ]
+    assert observed_bed_rows == expected_bed_rows
 
 
 def assert_long_read_assembly_outputs(
@@ -424,6 +373,64 @@ def assert_target_enrichment_outputs(
         assert plot.stat().st_size > 0, f"Empty target enrichment plot: {plot}"
 
 
+def assert_successful_nvd_multiqc_outputs(
+    results_root: Path,
+    *,
+    experimental: bool,
+    skip_assembly: bool,
+) -> None:
+    """Assert the healthy fixture completed ancillary reporting and publication."""
+    report = results_root / "multiqc_report.html"
+    data = results_root / "12_experiment_summary" / "multiqc_data"
+    nvd_inputs = data / "nvd_inputs"
+    manifest_path = nvd_inputs / "nvd_report_manifest.json"
+    raw_fastqc = results_root / "00_input_preparation" / "raw_fastq_qc" / "fastqc"
+
+    assert report.is_file(), f"Missing NVD MultiQC report: {report}"
+    assert report.stat().st_size > 0, f"Empty NVD MultiQC report: {report}"
+    assert data.is_dir(), f"Missing NVD MultiQC data directory: {data}"
+    assert any(data.iterdir()), f"Empty NVD MultiQC data directory: {data}"
+    assert manifest_path.is_file(), (
+        f"Missing retained NVD MultiQC manifest: {manifest_path}"
+    )
+    assert (nvd_inputs / "nvd_sample_roster_mqc.yaml").is_file()
+    expected_domain_inputs = [
+        "nvd_target_enrichment_mqc.yaml",
+        "nvd_depletion_mqc.yaml",
+        "nvd_fastx_profiles_mqc.yaml",
+        "nvd_fastx_single_read_length_distribution_mqc.yaml",
+        "nvd_fastx_quality_distribution_mqc.yaml",
+        "nvd_assembly_mqc.yaml",
+        "nvd_prepared_blast_query_batches_mqc.yaml",
+    ]
+    if experimental:
+        expected_domain_inputs.append(
+            "nvd_fastx_overlap_merged_pair_length_distribution_mqc.yaml",
+        )
+    if not skip_assembly:
+        expected_domain_inputs.append(
+            "nvd_fastx_filtered_contigs_length_distribution_mqc.yaml",
+        )
+    for filename in expected_domain_inputs:
+        assert (nvd_inputs / filename).is_file(), (
+            f"Missing retained NVD MultiQC input: {filename}"
+        )
+    assert raw_fastqc.is_dir(), f"Missing retained raw FastQC directory: {raw_fastqc}"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    raw_units = manifest.get("raw_fastqc")
+    assert raw_units, (
+        f"No observed raw FastQC units in retained manifest: {manifest_path}"
+    )
+    expected_zips = sorted(str(unit["zip_alias"]) for unit in raw_units)
+    expected_htmls = sorted(str(unit["html_alias"]) for unit in raw_units)
+    observed_zips = sorted(path.name for path in raw_fastqc.glob("*.raw.*_fastqc.zip"))
+    observed_htmls = sorted(
+        path.name for path in raw_fastqc.glob("*.raw.*_fastqc.html")
+    )
+    assert observed_zips == expected_zips
+    assert observed_htmls == expected_htmls
+
+
 def make_e2e_run_dir() -> Path:
     output_root = Path(os.environ.get("NVD_E2E_OUTPUT_DIR", E2E_OUTPUT_DIR))
     run_id = datetime.now(tz=UTC).strftime("%Y%m%dT%H%M%SZ") + f"-pid{os.getpid()}"
@@ -444,6 +451,12 @@ def integration_experimental_enabled() -> bool:
 
 def integration_skip_assembly_enabled() -> bool:
     return os.environ.get("NVD_INTEGRATION_SKIP_ASSEMBLY") == "1"
+
+
+def integration_skip_unassembled_read_queries_enabled() -> bool:
+    # Read querying is on by default from v3.4.0, so the contig-only path needs
+    # its own switch to stay covered.
+    return os.environ.get("NVD_INTEGRATION_SKIP_UNASSEMBLED_READ_QUERIES") == "1"
 
 
 def local_sample_row(sample: dict[str, Any], local_fastq_dir: Path) -> dict[str, str]:
@@ -558,14 +571,12 @@ def run_nextflow() -> tuple[subprocess.CompletedProcess[str], Path]:
                 "true",
                 "--merge_pairs",
                 "true",
-                "--sourmash_ref_fasta",
-                str(SOURMASH_REF_FASTA),
-                "--sourmash_lineages_path",
-                str(SOURMASH_LINEAGES),
             ],
         )
     if skip_assembly:
         command.extend(["--skip_assembly", "true"])
+    if integration_skip_unassembled_read_queries_enabled():
+        command.extend(["--skip_unassembled_read_queries", "true"])
     completed = subprocess.run(  # noqa: S603
         command,
         cwd=ROOT,
@@ -779,16 +790,11 @@ def run_labkey_nextflow(  # noqa: PLR0913
     if experimental:
         # Read-derived query classes (overlap_merged_pair, single_read) alongside
         # short_assembly_contig, so the run exercises the full per-query-class
-        # split. Needs the sourmash rapid-screening fixtures experimental turns on.
         command += [
             "--experimental",
             "true",
             "--merge_pairs",
             "true",
-            "--sourmash_ref_fasta",
-            str(SOURMASH_REF_FASTA),
-            "--sourmash_lineages_path",
-            str(SOURMASH_LINEAGES),
         ]
     completed = subprocess.run(  # noqa: S603
         command,
@@ -860,9 +866,9 @@ def test_lims_enabled_pipeline_uploads_eagerly_and_dedups() -> None:
             )
 
             results_root = run_dir / "results" / "nvd"
-            assert (results_root / "13_labkey_uploads").exists(), (
-                f"Missing LabKey uploads results dir under {results_root}"
-            )
+            assert (
+                results_root / "13_labkey_uploads" / "upload_logs" / "final_labkey_upload.log"
+            ).exists(), f"Missing final LabKey upload log under {results_root}"
 
             first_hits = data_hits_inserts(mock)
             assert first_hits, "no eager per-batch hits insert carrying query_class"
@@ -878,8 +884,8 @@ def test_lims_enabled_pipeline_uploads_eagerly_and_dedups() -> None:
                 f"expected the contig query class; observed {sorted(observed_classes)}"
             )
             assert observed_classes & {"overlap_merged_pair", "single_read"}, (
-                "expected read-derived query classes too (experimental mode splits "
-                f"queries by read type); observed {sorted(observed_classes)}"
+                "expected read-derived query classes too (queries are split by "
+                f"read type by default); observed {sorted(observed_classes)}"
             )
 
             before = len(first_hits)
@@ -1111,8 +1117,8 @@ def test_lims_enabled_real_labkey_uploads_and_dedups() -> None:
         )
         if experimental:
             assert observed_classes & {"overlap_merged_pair", "single_read"}, (
-                "expected read-derived query classes too (experimental mode splits "
-                f"queries by read type); observed {sorted(observed_classes)}"
+                "expected read-derived query classes too (queries are split by "
+                f"read type by default); observed {sorted(observed_classes)}"
             )
         first_hits_count = len(hits_after_first)
         first_fasta_count = len(
@@ -1181,8 +1187,37 @@ def test_mini_sra_viral_pipeline_completes() -> None:
         str(run_info["sample_id"])
         for run_info in (*LOCAL_E2E_SAMPLES, *selected_sra_runs)
     }
+    assert_successful_nvd_multiqc_outputs(
+        results_root,
+        experimental=experimental,
+        skip_assembly=skip_assembly,
+    )
     assert_target_enrichment_outputs(results_root, expected_sample_ids)
     assert_read_profiles_respect_length_filter(results_root)
+    resolved_manifest = (
+        results_root
+        / "00_input_preparation"
+        / "input_resolution"
+        / "resolved_reads.jsonl"
+    )
+    resolved_records = [
+        json.loads(line)
+        for line in resolved_manifest.read_text(encoding="utf-8").splitlines()
+    ]
+    resolved_by_sample = {record["sample_id"]: record for record in resolved_records}
+    for run_info in LOCAL_E2E_SAMPLES:
+        record = resolved_by_sample[run_info["sample_id"]]
+        assert record["source"] == run_info["source"]
+
+    glob_record = resolved_by_sample["local_hits_glob"]
+    assert [Path(path).name for path in glob_record["r1"]] == [
+        "local_hits_glob_L001_R1_001.fastq.gz",
+        "local_hits_glob_L002_R1_001.fastq.gz",
+    ]
+    assert [Path(path).name for path in glob_record["r2"]] == [
+        "local_hits_glob_L001_R2_001.fastq.gz",
+        "local_hits_glob_L002_R2_001.fastq.gz",
+    ]
     merged_blast_dir = results_root / "07_merged_blast_results"
     final_dir = merged_blast_dir / "final"
     final_blast_files = sorted(final_dir.glob("*_blast.final.tsv"))
@@ -1191,7 +1226,7 @@ def test_mini_sra_viral_pipeline_completes() -> None:
         results_root / "12_experiment_summary" / "experiment_blast_results.tsv"
     )
 
-    if skip_assembly:
+    if skip_assembly and integration_skip_unassembled_read_queries_enabled():
         assert not final_blast_files, (
             f"Skip-assembly run unexpectedly produced final BLAST TSVs: {final_blast_files}"
         )
@@ -1209,12 +1244,17 @@ def test_mini_sra_viral_pipeline_completes() -> None:
         )
         experiment_rows = read_tsv_rows(experiment_blast)
         assert experiment_rows, f"No experiment BLAST rows found in {experiment_blast}"
+        assert "who_risk_group" in experiment_rows[0]
 
         # Assert per-sample biological expectations for the rows actually under
         # test. Coupling this loop to every manifest row makes a deleted
         # samplesheet row fail as a missing output, even though the pipeline did
         # exactly what the samplesheet requested.
         for run_info in selected_sra_runs:
+            expected_risk_group = {
+                "Orf virus": "RG2",
+                "Monkeypox virus": "RG3",
+            }[run_info["expected_organism"]]
             sample_rows = [
                 row
                 for row in experiment_rows
@@ -1227,10 +1267,19 @@ def test_mini_sra_viral_pipeline_completes() -> None:
                 row.get("staxids") == str(run_info["taxid"]) for row in sample_rows
             ), f"No {run_info['taxid']} BLAST taxid found for {run_info['sample_id']}"
             assert any(
-                run_info["expected_organism"] in row.get("rank", "")
+                row.get("adjusted_taxid") == str(run_info["taxid"])
+                and row.get("who_risk_group") == expected_risk_group
                 for row in sample_rows
             ), (
-                f"No {run_info['expected_organism']} lineage found for "
+                f"No {expected_risk_group} WHO risk group found for "
+                f"{run_info['taxid']} in {run_info['sample_id']}"
+            )
+            assert any(
+                row.get("adjusted_taxid") == str(run_info["taxid"])
+                and row.get("adjusted_taxid_name") == run_info["expected_organism"]
+                for row in sample_rows
+            ), (
+                f"No {run_info['expected_organism']} adjusted taxon found for "
                 f"{run_info['sample_id']}"
             )
             expected_tasks = run_info.get("expected_tasks", [])
@@ -1239,30 +1288,6 @@ def test_mini_sra_viral_pipeline_completes() -> None:
                 f"Missing expected BLAST tasks for {run_info['sample_id']}: "
                 f"expected {sorted(expected_tasks)}, observed {sorted(observed_tasks)}"
             )
-
-        resolved_manifest = (
-            results_root / "00_input_resolution" / "resolved_reads.jsonl"
-        )
-        resolved_records = [
-            json.loads(line)
-            for line in resolved_manifest.read_text(encoding="utf-8").splitlines()
-        ]
-        resolved_by_sample = {
-            record["sample_id"]: record for record in resolved_records
-        }
-        for run_info in LOCAL_E2E_SAMPLES:
-            record = resolved_by_sample[run_info["sample_id"]]
-            assert record["source"] == run_info["source"]
-
-        glob_record = resolved_by_sample["local_hits_glob"]
-        assert [Path(path).name for path in glob_record["r1"]] == [
-            "local_hits_glob_L001_R1_001.fastq.gz",
-            "local_hits_glob_L002_R1_001.fastq.gz",
-        ]
-        assert [Path(path).name for path in glob_record["r2"]] == [
-            "local_hits_glob_L001_R2_001.fastq.gz",
-            "local_hits_glob_L002_R2_001.fastq.gz",
-        ]
 
         for organism in {
             str(run_info["expected_organism"]) for run_info in selected_sra_runs
@@ -1292,71 +1317,34 @@ def test_mini_sra_viral_pipeline_completes() -> None:
                 grouped_table,
                 list(per_sample_dir.glob("*.tsv")),
             )
-
-        sourmash_root = (
-            results_root
-            / "08_metagenomic_profiles"
-            / "rapid_screening"
-            / "engines"
-            / "sourmash"
-        )
-        ref_dir = sourmash_root / "reference"
-        gather_dir = sourmash_root / "gather"
-        merged_taxburst_dir = sourmash_root / "plots" / "taxburst"
-        taxburst_dir = merged_taxburst_dir / "per_sample"
-        sankey_dir = sourmash_root / "plots" / "sankey"
-
-        ref_sketches = sorted(ref_dir.glob("sourmash_reference.k31.scaled50.sig.zip"))
-        assert ref_sketches, f"Missing sourmash reference sketch in {ref_dir}"
-
-        expected_species_by_sample = {
-            run_info["sample_id"]: run_info["expected_organism"]
-            for run_info in selected_sra_runs
-        }
-        merged_taxburst_html = merged_taxburst_dir / "sourmash.taxburst.html"
-        assert merged_taxburst_html.is_file(), (
-            f"Missing merged sourmash taxburst report: {merged_taxburst_html}"
-        )
-        assert merged_taxburst_html.stat().st_size > 0, (
-            f"Empty merged sourmash taxburst report: {merged_taxburst_html}"
-        )
-
-        for sample_id, expected_species in expected_species_by_sample.items():
-            gather_csv = gather_dir / f"{sample_id}.sourmash.gather.csv"
-            assert gather_csv.is_file(), f"Missing sourmash gather CSV: {gather_csv}"
-            gather_rows = read_csv_rows(gather_csv)
-            assert gather_rows, f"No sourmash gather rows found for {sample_id}"
-            assert any(
-                expected_species in (row.get("name") or row.get("match_name", ""))
-                for row in gather_rows
-            ), f"No {expected_species} sourmash gather hit found for {sample_id}"
-
-            taxburst_html = taxburst_dir / f"{sample_id}.sourmash.taxburst.html"
-            taxburst_json = taxburst_dir / f"{sample_id}.sourmash.taxburst.json"
-            for report in (taxburst_html, taxburst_json):
-                assert report.is_file(), f"Missing sourmash taxburst report: {report}"
-                assert report.stat().st_size > 0, (
-                    f"Empty sourmash taxburst report: {report}"
-                )
-
-            sankey_html = sankey_dir / f"{sample_id}.sourmash.sankey.html"
-            assert sankey_html.is_file(), (
-                f"Missing sourmash Sankey report: {sankey_html}"
+            rows = read_tsv_rows(featured_table)
+            assert rows, f"No rows in featured Big Table: {featured_table}"
+            columns = list(rows[0])
+            taxid_column = (
+                "assigned_taxid" if filename == "query_big_table.tsv" else "taxid"
             )
-            assert sankey_html.stat().st_size > 0, (
-                f"Empty sourmash Sankey report: {sankey_html}"
-            )
+            assert columns.index("who_risk_group") == columns.index(taxid_column) + 1
+            if filename == "query_big_table.tsv":
+                placement_columns = {
+                    "best_hit_reference_accession",
+                    "best_hit_reference_title",
+                    "best_hit_alignment_length",
+                    "best_hit_query_start_1based",
+                    "best_hit_query_end_1based",
+                    "best_hit_reference_length",
+                    "best_hit_reference_start_1based",
+                    "best_hit_reference_end_1based",
+                    "best_hit_reference_strand",
+                }
+                assert placement_columns <= set(columns)
+                for row in rows:
+                    assert row["best_hit_reference_accession"]
+                    assert int(row["best_hit_query_start_1based"]) <= int(
+                        row["best_hit_query_end_1based"],
+                    )
+                    assert int(row["best_hit_reference_start_1based"]) <= int(
+                        row["best_hit_reference_end_1based"],
+                    )
 
-        eval_root = results_root / "10_rapid_screening_eval"
-        for eval_artifact in (
-            eval_root / "database" / "rapid_screening_eval.duckdb",
-            eval_root / "exports" / "screening_signal_followup_by_sample_rank.tsv",
-            eval_root / "exports" / "screening_signals_without_same_rank_followup.tsv",
-            eval_root / "reports" / "rapid_screening_eval.html",
-        ):
-            assert eval_artifact.is_file(), (
-                f"Missing rapid-screening eval artifact: {eval_artifact}"
-            )
-            assert eval_artifact.stat().st_size > 0, (
-                f"Empty rapid-screening eval artifact: {eval_artifact}"
-            )
+        assert_best_hit_sequence_evidence_outputs(results_root)
+

@@ -20,7 +20,7 @@ class TestNvdParamsInstantiation:
     def test_minimal_instantiation(self) -> None:
         """Can create NvdParams with no arguments (all defaults)."""
         p = NvdParams()
-        assert p.preprocess is False
+        assert p.merge_pairs is True
         assert p.cutoff_percent == 0.001
 
     def test_with_required_fields(self) -> None:
@@ -49,7 +49,6 @@ class TestNvdParamsInstantiation:
             blast_db=Path("/db/blast"),
             blast_db_prefix="nt",
             # Preprocessing
-            preprocess=True,
             dedup=True,
             dedup_seq=True,
             dedup_pos=True,
@@ -68,6 +67,37 @@ class TestNvdParamsInstantiation:
         assert p.host_index == Path("/db/host.idx")
         assert p.cutoff_percent == 0.01
         assert p.labkey is True
+
+
+class TestRemovedParams:
+    """Params deleted in v3.4.0 should fail with a message that explains why."""
+
+    def test_preprocess_names_the_release_and_the_reason(self) -> None:
+        """A stale preset carrying preprocess should not get a bare pydantic error."""
+        with pytest.raises(ValidationError) as excinfo:
+            NvdParams(preprocess=True)
+
+        message = str(excinfo.value)
+        assert "preprocess" in message
+        assert "v3.4.0" in message
+        assert "no effect" in message
+
+    def test_sourmash_reference_params_name_the_removed_feature(self) -> None:
+        """A preset pinning a rapid-screening reference should say why it broke."""
+        with pytest.raises(ValidationError) as excinfo:
+            NvdParams(sourmash_ref_path="/refs/viruses.sig.zip")
+
+        message = str(excinfo.value)
+        assert "sourmash_ref_path" in message
+        assert "v3.4.0" in message
+        assert "rapid screening" in message
+
+    def test_unknown_params_still_get_the_ordinary_error(self) -> None:
+        """The removal notice must not swallow genuine typos."""
+        with pytest.raises(ValidationError) as excinfo:
+            NvdParams(not_a_real_param=True)
+
+        assert "v3.4.0" not in str(excinfo.value)
 
 
 class TestNvdParamsRangeValidators:
@@ -135,10 +165,9 @@ class TestNvdParamsPositiveIntValidators:
 
     def test_sourmash_sketch_params_valid(self) -> None:
         """Sourmash sketch parameters accept positive integers."""
-        p = NvdParams(sourmash_ksize=31, sourmash_scaled=50, sourmash_threshold_bp=50)
+        p = NvdParams(sourmash_ksize=31, sourmash_scaled=50)
         assert p.sourmash_ksize == 31
         assert p.sourmash_scaled == 50
-        assert p.sourmash_threshold_bp == 50
 
     def test_host_kmer_size_zero_rejected(self) -> None:
         """host_kmer_size=0 raises ValidationError."""
@@ -160,11 +189,6 @@ class TestNvdParamsPositiveIntValidators:
         """sourmash_scaled=0 raises ValidationError."""
         with pytest.raises(ValidationError):
             NvdParams(sourmash_scaled=0)
-
-    def test_sourmash_threshold_bp_negative_rejected(self) -> None:
-        """Negative sourmash_threshold_bp raises ValidationError."""
-        with pytest.raises(ValidationError):
-            NvdParams(sourmash_threshold_bp=-1)
 
     def test_max_blast_targets_valid(self) -> None:
         """max_blast_targets accepts positive integers."""
@@ -215,31 +239,6 @@ class TestNvdParamsNonNegativeIntValidators:
         """Negative min_read_quality_nanopore raises ValidationError."""
         with pytest.raises(ValidationError):
             NvdParams(min_read_quality_nanopore=-5)
-
-
-class TestNvdParamsSourmashResourceValidators:
-    """Tests for sourmash local path and URL resource validators."""
-
-    def test_sourmash_url_params_accept_http_urls(self) -> None:
-        """Sourmash URL params accept HTTP(S) URLs."""
-        p = NvdParams(
-            sourmash_ref_url="https://example.org/ref.sig.zip",
-            sourmash_lineages_url="https://example.org/lineages.csv",
-        )
-        assert p.sourmash_ref_url == "https://example.org/ref.sig.zip"
-        assert p.sourmash_lineages_url == "https://example.org/lineages.csv"
-
-    def test_sourmash_url_params_reject_local_paths(self) -> None:
-        """Sourmash URL params reject local paths."""
-        with pytest.raises(ValidationError) as exc_info:
-            NvdParams(sourmash_ref_url="/refs/ref.sig.zip")
-        assert "Expected an HTTP(S) URL" in str(exc_info.value)
-
-    def test_sourmash_path_params_reject_urls(self) -> None:
-        """Sourmash local path params reject URLs."""
-        with pytest.raises(ValidationError) as exc_info:
-            NvdParams(sourmash_ref_path="https://example.org/ref.sig.zip")
-        assert "Use the corresponding *_url param" in str(exc_info.value)
 
 
 class TestNvdParamsMaxReadLength:
@@ -414,11 +413,11 @@ class TestNvdParamsToNextflowArgs:
 
     def test_bool_to_string(self) -> None:
         """Booleans are converted to 'true'/'false' strings."""
-        p = NvdParams(preprocess=True, labkey=False)
+        p = NvdParams(merge_pairs=True, labkey=False)
         cmd = p.to_nextflow_args(Path("/pipeline"))
-        # Find the value after --preprocess
-        preprocess_idx = cmd.index("--preprocess")
-        assert cmd[preprocess_idx + 1] == "true"
+        # Find the value after --merge_pairs
+        merge_pairs_idx = cmd.index("--merge_pairs")
+        assert cmd[merge_pairs_idx + 1] == "true"
         labkey_idx = cmd.index("--labkey")
         assert cmd[labkey_idx + 1] == "false"
 
@@ -469,41 +468,18 @@ class TestNvdParamsToNextflowArgs:
 
     def test_skip_stage_params(self) -> None:
         """Stage-skip params are propagated with Nextflow underscore names."""
-        p = NvdParams(skip_assembly=True, skip_blast=True)
+        p = NvdParams(skip_assembly=True, skip_blast=True, skip_fastqc=True)
         cmd = p.to_nextflow_args(Path("/pipeline"))
 
         assembly_idx = cmd.index("--skip_assembly")
         blast_idx = cmd.index("--skip_blast")
+        fastqc_idx = cmd.index("--skip_fastqc")
         assert cmd[assembly_idx + 1] == "true"
         assert cmd[blast_idx + 1] == "true"
+        assert cmd[fastqc_idx + 1] == "true"
         assert "--skip-assembly" not in cmd
         assert "--skip-blast" not in cmd
-
-    def test_sourmash_reference_params(self) -> None:
-        """Sourmash reference params are correctly propagated."""
-        p = NvdParams(
-            sourmash_ref_path=Path("/refs/viruses.sig.zip"),
-            sourmash_lineages_path=Path("/refs/viruses.lineages.csv"),
-            sourmash_ksize=31,
-            sourmash_scaled=50,
-            sourmash_threshold_bp=0,
-        )
-        cmd = p.to_nextflow_args(Path("/pipeline"))
-
-        ref_idx = cmd.index("--sourmash_ref_path")
-        lineages_idx = cmd.index("--sourmash_lineages_path")
-        ksize_idx = cmd.index("--sourmash_ksize")
-        scaled_idx = cmd.index("--sourmash_scaled")
-        threshold_idx = cmd.index("--sourmash_threshold_bp")
-        assert cmd[ref_idx + 1] == "/refs/viruses.sig.zip"
-        assert cmd[lineages_idx + 1] == "/refs/viruses.lineages.csv"
-        assert cmd[ksize_idx + 1] == "31"
-        assert cmd[scaled_idx + 1] == "50"
-        assert cmd[threshold_idx + 1] == "0"
-
-
-class TestNvdParamsDefaults:
-    """Tests for default values matching nextflow.config."""
+        assert "--skip-fastqc" not in cmd
 
     def test_default_cutoff_percent(self) -> None:
         """Default cutoff_percent matches nextflow.config."""
@@ -543,28 +519,26 @@ class TestNvdParamsDefaults:
         assert cmd[no_enrichment_idx + 1] == "true"
         assert "--no-enrichment" not in cmd
 
-    def test_default_sourmash_reference_sources(self) -> None:
-        """Experimental sourmash reference profiling is off by default."""
-        assert NvdParams().sourmash_ref_path is None
-        assert NvdParams().sourmash_ref_url is None
-        assert NvdParams().sourmash_ref_fasta is None
-        assert NvdParams().sourmash_lineages_path is None
-        assert NvdParams().sourmash_lineages_url is None
+    def test_skip_unassembled_read_queries_reaches_nextflow(self) -> None:
+        """The read-query skip is forwarded with Nextflow underscore naming."""
+        p = NvdParams(skip_unassembled_read_queries=True)
+        cmd = p.to_nextflow_args(Path("/pipeline"))
+
+        skip_idx = cmd.index("--skip_unassembled_read_queries")
+        assert cmd[skip_idx + 1] == "true"
+
+    def test_default_sourmash_sketch_params(self) -> None:
+        """Sketch parameters survive the rapid-screening removal."""
         assert NvdParams().sourmash_ksize == 31
         assert NvdParams().sourmash_scaled == 50
-        assert NvdParams().sourmash_threshold_bp == 50
 
     def test_default_max_blast_targets(self) -> None:
         """Default max_blast_targets matches nextflow.config."""
         assert NvdParams().max_blast_targets == 100
 
-    def test_default_preprocess(self) -> None:
-        """Default preprocess matches nextflow.config."""
-        assert NvdParams().preprocess is False
-
     def test_default_merge_pairs(self) -> None:
-        """Default merge_pairs matches nextflow.config."""
-        assert NvdParams().merge_pairs is False
+        """Pair merging is on by default; --no-merge-pairs is the opt-out."""
+        assert NvdParams().merge_pairs is True
 
     def test_default_low_complexity_read_filter(self) -> None:
         """Low-complexity read filtering is opt-in with a dormant threshold."""
@@ -580,6 +554,8 @@ class TestNvdParamsDefaults:
         """Stage-skip params are disabled by default."""
         assert NvdParams().skip_assembly is False
         assert NvdParams().skip_blast is False
+        assert NvdParams().skip_fastqc is False
+        assert NvdParams().skip_unassembled_read_queries is False
 
     def test_default_labkey(self) -> None:
         """Default labkey matches nextflow.config."""

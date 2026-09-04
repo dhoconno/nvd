@@ -22,7 +22,7 @@ import yaml
 SCHEMA_FILENAME = "nvd-params.latest.schema.json"
 
 # GitHub raw URL for schema (fallback and for generated templates)
-SCHEMA_URL = "https://raw.githubusercontent.com/dholab/nvd/main/schemas/nvd-params.v3.3.2.schema.json"
+SCHEMA_URL = "https://raw.githubusercontent.com/dholab/nvd/main/schemas/nvd-params.v3.4.0.schema.json"
 
 
 def _find_schema_path() -> Path:
@@ -274,7 +274,6 @@ def _yaml_analysis_section(
     # Preprocessing
     lines.append("# === Preprocessing ===")
     preprocess_params = [
-        "preprocess",
         "dedup",
         "dedup_seq",
         "dedup_pos",
@@ -287,7 +286,9 @@ def _yaml_analysis_section(
     for name in preprocess_params:
         if name in properties:
             prop = properties[name]
-            if name == "preprocess":
+            if name == "merge_pairs":
+                # Merging is on by default, so surface it uncommented rather
+                # than as an opt-in suggestion like the rest of this section.
                 default = prop.get("default")
                 desc = prop.get("description", "")
                 lines.append(f"{name}: {_format_yaml_value(default)}  # {desc}")
@@ -329,9 +330,9 @@ def _generate_yaml_template(path: Path, schema: dict, schema_url: str) -> None:
     _add_commented_section(
         lines,
         "Execution Controls",
-        ["skip_assembly", "skip_blast"],
+        ["skip_assembly", "skip_blast", "skip_fastqc", "skip_unassembled_read_queries"],
         properties,
-        subheading="Skip expensive downstream stages for diagnostics or partial runs.",
+        subheading="Skip optional or expensive stages for diagnostics or partial runs.",
     )
 
     _yaml_analysis_section(lines, properties)
@@ -366,14 +367,8 @@ def _generate_yaml_template(path: Path, schema: dict, schema_url: str) -> None:
             "virus_window_size",
             "virus_abs_threshold",
             "virus_rel_threshold",
-            "sourmash_ref_path",
-            "sourmash_ref_url",
-            "sourmash_ref_fasta",
-            "sourmash_lineages_path",
-            "sourmash_lineages_url",
             "sourmash_ksize",
             "sourmash_scaled",
-            "sourmash_threshold_bp",
             "nvd_files",
         ],
         properties,
@@ -439,7 +434,7 @@ def _generate_json_template(path: Path, _schema: dict, schema_url: str) -> None:
         "cutoff_percent": 0.001,
         "entropy": 0.9,
         "tax_stringency": 0.7,
-        "preprocess": False,
+        "merge_pairs": True,
     }
 
     with open(path, "w", encoding="utf-8") as f:

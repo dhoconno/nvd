@@ -165,6 +165,18 @@ def run(
         help="Skip MEGABLAST and BLASTN contig search.",
         rich_help_panel=PANEL_CORE,
     ),
+    skip_fastqc: bool | None = typer.Option(
+        None,
+        "--skip-fastqc",
+        help="Skip per-file raw-read FastQC.",
+        rich_help_panel=PANEL_CORE,
+    ),
+    skip_unassembled_read_queries: bool | None = typer.Option(
+        None,
+        "--skip-unassembled-read-queries",
+        help="Skip BLAST querying of unassembled reads (contigs only).",
+        rich_help_panel=PANEL_CORE,
+    ),
     # -------------------------------------------------------------------------
     # Reference Paths
     # -------------------------------------------------------------------------
@@ -204,36 +216,6 @@ def run(
         help="Disable target enrichment even when an index source is configured",
         rich_help_panel=PANEL_DATABASES,
     ),
-    sourmash_ref_path: Path | None = typer.Option(
-        None,
-        "--sourmash-ref-path",
-        help="Path to a prebuilt sourmash reference sketch database",
-        rich_help_panel=PANEL_DATABASES,
-    ),
-    sourmash_ref_url: str | None = typer.Option(
-        None,
-        "--sourmash-ref-url",
-        help="URL to download a prebuilt sourmash reference sketch database",
-        rich_help_panel=PANEL_DATABASES,
-    ),
-    sourmash_ref_fasta: Path | None = typer.Option(
-        None,
-        "--sourmash-ref-fasta",
-        help="Local FASTA to sketch as an experimental sourmash reference database",
-        rich_help_panel=PANEL_DATABASES,
-    ),
-    sourmash_lineages_path: Path | None = typer.Option(
-        None,
-        "--sourmash-lineages-path",
-        help="Path to a sourmash taxonomy lineages CSV matching the reference sketch database",
-        rich_help_panel=PANEL_DATABASES,
-    ),
-    sourmash_lineages_url: str | None = typer.Option(
-        None,
-        "--sourmash-lineages-url",
-        help="URL to download a sourmash taxonomy lineages CSV matching the reference sketch database",
-        rich_help_panel=PANEL_DATABASES,
-    ),
     sourmash_ksize: int | None = typer.Option(
         None,
         "--sourmash-ksize",
@@ -244,12 +226,6 @@ def run(
         None,
         "--sourmash-scaled",
         help="Scaled value for experimental sourmash sketching (default: 50)",
-        rich_help_panel=PANEL_DATABASES,
-    ),
-    sourmash_threshold_bp: int | None = typer.Option(
-        None,
-        "--sourmash-threshold-bp",
-        help="Minimum estimated base-pair overlap for experimental sourmash gather (default: 50)",
         rich_help_panel=PANEL_DATABASES,
     ),
     virus_kmer_size: int | None = typer.Option(
@@ -345,12 +321,6 @@ def run(
     # -------------------------------------------------------------------------
     # Read Preprocessing
     # -------------------------------------------------------------------------
-    preprocess: bool | None = typer.Option(
-        None,
-        "--preprocess/--no-preprocess",
-        help="Enable default preprocessing steps",
-        rich_help_panel=PANEL_PREPROCESSING,
-    ),
     dedup: bool | None = typer.Option(
         None,
         "--dedup",
@@ -372,13 +342,13 @@ def run(
     trim_adapters: bool | None = typer.Option(
         None,
         "--trim-adapters/--no-trim-adapters",
-        help="Trim Illumina adapters (default: follows --preprocess)",
+        help="Trim Illumina adapters (default: off)",
         rich_help_panel=PANEL_PREPROCESSING,
     ),
     merge_pairs: bool | None = typer.Option(
         None,
         "--merge-pairs/--no-merge-pairs",
-        help="Merge overlapping paired-end reads before contig mapback",
+        help="Merge overlapping paired-end reads before contig mapback (default: on)",
         rich_help_panel=PANEL_PREPROCESSING,
     ),
     host_index: Path | None = typer.Option(
@@ -402,7 +372,7 @@ def run(
     filter_reads: bool | None = typer.Option(
         None,
         "--filter-reads/--no-filter-reads",
-        help="Filter reads by quality/length (default: follows --preprocess)",
+        help="Filter reads by quality/length (default: off)",
         rich_help_panel=PANEL_PREPROCESSING,
     ),
     filter_low_complexity_reads: bool | None = typer.Option(
@@ -484,6 +454,12 @@ def run(
         None,
         "--labkey-blast-fasta-list",
         help="LabKey list name for BLAST FASTA results",
+        rich_help_panel=PANEL_LABKEY,
+    ),
+    labkey_insert_batch_size: int | None = typer.Option(
+        None,
+        "--labkey-insert-batch-size",
+        help="Rows per LabKey insert call (default: 1000)",
         rich_help_panel=PANEL_LABKEY,
     ),
     # -------------------------------------------------------------------------
@@ -614,6 +590,8 @@ def run(
         "experimental": experimental,
         "skip_assembly": skip_assembly,
         "skip_blast": skip_blast,
+        "skip_fastqc": skip_fastqc,
+        "skip_unassembled_read_queries": skip_unassembled_read_queries,
         # Reference paths
         "blast_db": blast_db,
         "blast_db_prefix": blast_db_prefix,
@@ -625,14 +603,8 @@ def run(
         "virus_window_size": virus_window_size,
         "virus_abs_threshold": virus_abs_threshold,
         "virus_rel_threshold": virus_rel_threshold,
-        "sourmash_ref_path": sourmash_ref_path,
-        "sourmash_ref_url": sourmash_ref_url,
-        "sourmash_ref_fasta": sourmash_ref_fasta,
-        "sourmash_lineages_path": sourmash_lineages_path,
-        "sourmash_lineages_url": sourmash_lineages_url,
         "sourmash_ksize": sourmash_ksize,
         "sourmash_scaled": sourmash_scaled,
-        "sourmash_threshold_bp": sourmash_threshold_bp,
         # Reference versions
         "blast_db_version": blast_db_version,
         # Analysis
@@ -646,7 +618,6 @@ def run(
         "include_children": include_children,
         "max_concurrent_downloads": max_concurrent_downloads,
         # Preprocessing
-        "preprocess": preprocess,
         "dedup": dedup,
         "dedup_seq": dedup_seq,
         "dedup_pos": dedup_pos,
@@ -670,6 +641,7 @@ def run(
         "labkey_schema": labkey_schema,
         "labkey_blast_meta_hits_list": labkey_blast_meta_hits_list,
         "labkey_blast_fasta_list": labkey_blast_fasta_list,
+        "labkey_insert_batch_size": labkey_insert_batch_size,
         # Notifications
         "slack_enabled": False if no_slack else None,  # Only override if --no-slack
         "slack_channel": slack_channel,

@@ -12,7 +12,7 @@ except ImportError:
     print("ERROR: Polars is not installed. Please install it with: pip install polars")
     sys.exit(1)
 
-from py_nvd.labkey_io import insert_records, rows_present
+from py_nvd.labkey_io import PartialInsertError, insert_records, rows_present
 
 
 # Taxid columns held strictly to a clean integer or a passable null so LabKey's
@@ -347,6 +347,15 @@ def main():
     parser.add_argument("--labkey-schema", required=True)
     parser.add_argument("--table-name", default="metagenomic_hits_test_nvd2")
     parser.add_argument(
+        "--insert-batch-size",
+        type=int,
+        default=1000,
+        help=(
+            "Rows per LabKey insert call. Read-derived query classes produce "
+            "payloads large enough that a single call can hang the server."
+        ),
+    )
+    parser.add_argument(
         "--blast-retention-count",
         type=int,
         default=5,
@@ -469,14 +478,47 @@ def main():
                     log_entries.append(f"    {key}: {value}")
 
             if upload_enabled:
-                # Insert the whole combo atomically: one (sample_id, query_class)
-                # batch is small enough that chunked inserts only add partial-
-                # failure risk without a throughput benefit.
+                # Sent in batches: a (sample_id, query_class) unit now covers
+                # read-derived classes, whose hit tables are large enough that a
+                # single insert call can hang the server. Batching gives up
+                # atomicity, so a mid-way failure is reported loudly below
+                # rather than being rolled back.
                 records = dataframe_to_records(df)
                 try:
                     insert_records(
-                        api.query, args.labkey_schema, args.table_name, records,
+                        api.query,
+                        args.labkey_schema,
+                        args.table_name,
+                        records,
+                        batch_size=args.insert_batch_size,
                     )
+                except PartialInsertError as e:
+                    log_entries.append(f"  Upload: ERROR - {e!s}")
+                    log_entries.append(
+                        f"    Failed batch first record: {df.head(1).to_dicts()[0]}",
+                    )
+                    log_entries.append(
+                        f"\nBLAST UPLOAD FAILED - {e.rows_committed} of "
+                        f"{e.total_rows} rows were COMMITTED and were NOT rolled "
+                        f"back.\n"
+                        f"The destination list is keyed on row presence, so a "
+                        f"retry will treat experiment={args.experiment_id} "
+                        f"sample={args.sample_id} query_class={args.query_class} "
+                        f"as already uploaded and silently skip the remaining "
+                        f"{e.total_rows - e.rows_committed} rows.\n"
+                        f"Delete that unit's rows from "
+                        f"{args.labkey_schema}.{args.table_name} before "
+                        f"re-running.",
+                    )
+                    _write_log(log_entries)
+                    print(
+                        f"ERROR: LabKey insert failed for sample={args.sample_id}, "
+                        f"query_class={args.query_class} after committing "
+                        f"{e.rows_committed}/{e.total_rows} rows; "
+                        f"delete this unit's rows before retrying: {e!s}",
+                        file=sys.stderr,
+                    )
+                    sys.exit(1)
                 except Exception as e:
                     log_entries.append(f"  Upload: ERROR - {e!s}")
                     log_entries.append(
