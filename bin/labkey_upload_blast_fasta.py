@@ -15,19 +15,33 @@ from datetime import datetime
 from py_nvd.labkey_io import PartialInsertError, insert_records, rows_present
 
 
-def sample_already_uploaded(query_api, schema, table, experiment, sample_id) -> bool:
-    """True if the FASTA list already holds this sample's contigs (its ledger).
+def combo_already_uploaded(
+    query_api,
+    schema,
+    table,
+    experiment,
+    sample_id,
+    query_class,
+) -> bool:
+    """True if the FASTA list already holds this unit's rows (its ledger).
 
-    FASTA is contig-only: one unit per sample, so presence is checked by
-    (experiment, sample_id) alone (no query_class). Reuses the guard script's
-    filter fallbacks (QueryFilter objects, then filter-string syntax) so this
-    still works against older labkey-api-python versions.
+    The unit is (experiment, sample_id, query_class), matching the BLAST hits
+    upload. Keying on (experiment, sample_id) alone was correct only while the
+    list held contigs: now that every queried class is uploaded, the contig
+    batch would make each later class for that sample look already uploaded and
+    its rows would be dropped with no error. Reuses the guard script's filter
+    fallbacks (QueryFilter objects, then filter-string syntax) so this still
+    works against older labkey-api-python versions.
     """
     return rows_present(
         query_api,
         schema,
         table,
-        {"experiment": experiment, "sample_id": sample_id},
+        {
+            "experiment": experiment,
+            "sample_id": sample_id,
+            "query_class": query_class,
+        },
     )
 
 
@@ -43,11 +57,12 @@ def main():
     parser = argparse.ArgumentParser(description="Upload FASTA CSVs to LabKey.")
     parser.add_argument("--experiment-id", required=True)
     parser.add_argument("--sample-id", required=True)
+    parser.add_argument("--query-class", required=True)
     parser.add_argument("--labkey-server", required=True)
     parser.add_argument("--labkey-project-name", required=True)
     parser.add_argument("--labkey-api-key", required=True)
     parser.add_argument("--labkey-schema", required=True)
-    parser.add_argument("--table-name", default="fasta_hits_test_nvd2")
+    parser.add_argument("--table-name", default="fasta_hits_test")
     parser.add_argument(
         "--insert-batch-size",
         type=int,
@@ -63,6 +78,7 @@ def main():
         f"LabKey FASTA Upload Log - {datetime.now()}",
         f"Experiment ID: {args.experiment_id}",
         f"Sample: {args.sample_id}",
+        f"Query class: {args.query_class}",
         f"Server: {args.labkey_server}",
         f"Project: {args.labkey_project_name}",
         f"Target Table: {args.table_name}",
@@ -91,19 +107,20 @@ def main():
             "No LabKey credentials provided - running in simulation mode",
         )
 
-    # The destination list is its own completion ledger. If this sample already
-    # has rows there, a prior run already uploaded its contigs: skip
-    # re-inserting rather than risk duplicating the FASTA list.
-    if upload_enabled and sample_already_uploaded(
+    # The destination list is its own completion ledger. If this
+    # (sample_id, query_class) unit already has rows there, a prior run
+    # uploaded it: skip re-inserting rather than duplicate the FASTA list.
+    if upload_enabled and combo_already_uploaded(
         api.query,
         args.labkey_schema,
         args.table_name,
         int(args.experiment_id),
         args.sample_id,
+        args.query_class,
     ):
         log_entries.append(
-            f"SKIP: sample already uploaded (exp={args.experiment_id}, "
-            f"sample={args.sample_id}); no insert.",
+            f"SKIP: combo already uploaded (exp={args.experiment_id}, "
+            f"sample={args.sample_id}, query_class={args.query_class}); no insert.",
         )
         _write_log(log_entries)
         return
@@ -157,7 +174,9 @@ def main():
                                 f"The destination list is keyed on row presence, "
                                 f"so a retry will treat "
                                 f"experiment={args.experiment_id} "
-                                f"sample={args.sample_id} as already uploaded and "
+                                f"sample={args.sample_id} "
+                                f"query_class={args.query_class} as already "
+                                f"uploaded and "
                                 f"silently skip the remaining "
                                 f"{e.total_rows - e.rows_committed} rows.\n"
                                 f"Delete that unit's rows from "
@@ -167,7 +186,8 @@ def main():
                             _write_log(log_entries)
                             print(
                                 f"ERROR: LabKey insert failed for "
-                                f"sample={args.sample_id} after committing "
+                                f"sample={args.sample_id} query_class={args.query_class} "
+                                f"after committing "
                                 f"{e.rows_committed}/{e.total_rows} rows; delete "
                                 f"this unit's rows before retrying: {e!s}",
                                 file=sys.stderr,
@@ -185,7 +205,9 @@ def main():
                                 file=sys.stderr,
                             )
                             sys.exit(1)
-                        log_entries.append(f"  Upload: SUCCESS ({len(records)} records)")
+                        log_entries.append(
+                            f"  Upload: SUCCESS ({len(records)} records)"
+                        )
                         total_records_uploaded += record_count
 
                     else:

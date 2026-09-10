@@ -37,8 +37,9 @@ blast_fields = [
 blast_fasta_fields = [
     "Experiment",
     "Sample Id",
-    "Contig Id",
-    "Contig Sequence",
+    "Query Class",
+    "Qseqid",
+    "Query Sequence",
     "Notes",
     "Snakemake Run Id",
 ]
@@ -195,8 +196,9 @@ def main() -> None:
         dummy = {
             "Experiment": unique_experiment_id,
             "Sample Id": "__DUMMY__SAMPLE__",
-            "Contig Id": "__DUMMY__CONTIG__",
-            "Contig Sequence": "ATGCATGC",
+            "Query Class": "__DUMMY__CLASS__",
+            "Qseqid": "__DUMMY__QUERY__",
+            "Query Sequence": "ATGCATGC",
             "Notes": 0.0,
             "Snakemake Run Id": "__DUMMY__SMK__",
         }

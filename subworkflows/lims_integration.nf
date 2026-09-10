@@ -60,19 +60,22 @@ workflow LIMS_INTEGRATION {
         tuple(sample_id, query_class, blast_tsv)
     }
 
-    // FASTA insertion and the combined WebDAV upload remain synchronized by
-    // this inner join. Contigs are per-sample, so this joins against the
-    // per-sample stacked BLAST TSV (not the per-batch stream) to keep both
-    // downstream of this join running once per sample. Read-only samples
-    // intentionally skip both for now.
-    ch_all_sample_data = ch_labkey_sample_blast_results
+    // The combined WebDAV upload pairs a sample's stacked BLAST TSV with its
+    // contig FASTA, so it keeps this inner join: both sides are per-sample, and
+    // a sample with no contigs has nothing to combine. LabKey FASTA rows no
+    // longer come through here — see ch_query_fasta_split below.
+    ch_webdav_upload = ch_labkey_sample_blast_results
         .join(ch_labkey_contigs, by: 0)
 
-    ch_split = ch_all_sample_data
-        .multiMap { sample_id, blast_tsv, fasta ->
-            def fasta_output = "${sample_id}_fasta_labkey.csv"
-            webdav_upload: [sample_id, blast_tsv, fasta]
-            fasta_labkey: [sample_id, fasta, fasta_output]
+    // FASTA rows now follow the BLAST hits pattern: one batch per
+    // (sample_id, query_class), covering every class that was actually
+    // queried rather than contigs alone. A queue channel cannot be consumed
+    // twice, so the WebDAV artifact upload and the LabKey row insert each take
+    // their own branch of the same stream.
+    ch_query_fasta_split = ch_labkey_query_fastas
+        .multiMap { sample_id, query_class, fasta ->
+            webdav: tuple(sample_id, query_class, fasta)
+            labkey_rows: tuple(sample_id, query_class, fasta)
         }
 
     LABKEY_PREPARE_BLAST(
@@ -82,21 +85,20 @@ workflow LIMS_INTEGRATION {
     )
 
     LABKEY_WEBDAV_UPLOAD_BLAST(
-        ch_split.webdav_upload,
+        ch_webdav_upload,
         ch_validation_gate,
     )
 
     // Per-read-type query FASTAs (contig, merged, single) — the sequences
-    // that were actually BLASTed — published as file artifacts. Un-guarded:
-    // there is no corresponding LabKey list row, so no validation gate is
-    // required beyond params.labkey being enabled.
+    // that were actually BLASTed — published as file artifacts alongside the
+    // LabKey rows built from the same batches.
     LABKEY_WEBDAV_UPLOAD_QUERY_FASTA(
-        ch_labkey_query_fastas,
+        ch_query_fasta_split.webdav,
         ch_validation_gate,
     )
 
     LABKEY_PREPARE_FASTA(
-        ch_split.fasta_labkey,
+        ch_query_fasta_split.labkey_rows,
         experiment_id,
         run_id,
         ch_validation_gate,
