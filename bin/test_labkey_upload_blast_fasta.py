@@ -111,8 +111,8 @@ def test_main_exits_nonzero_when_insert_fails(tmp_path, monkeypatch, capsys) -> 
     """A failed atomic insert must hard-fail the run, not report success."""
     csv_path = tmp_path / "s1_fasta.csv"
     csv_path.write_text(
-        "experiment,sample_id,contig_id,contig_sequence,notes,nextflow_run_id\n"
-        "7,s1,contig_1,ACGT,,run1\n",
+        "experiment,sample_id,query_class,qseqid,query_sequence,notes,nextflow_run_id\n"
+        "7,s1,single_read,nvdReadQuery_s1_000001,ACGT,,run1\n",
     )
 
     fake_query = _FakeQueryAPI(rows=[], insert_error=RuntimeError("insert boom"))
@@ -138,8 +138,8 @@ def test_main_skip_present_sample_exits_zero(tmp_path, monkeypatch) -> None:
     """A unit already present in the destination list is a no-op success, not a failure."""
     csv_path = tmp_path / "s1_fasta.csv"
     csv_path.write_text(
-        "experiment,sample_id,contig_id,contig_sequence,notes,nextflow_run_id\n"
-        "7,s1,contig_1,ACGT,,run1\n",
+        "experiment,sample_id,query_class,qseqid,query_sequence,notes,nextflow_run_id\n"
+        "7,s1,single_read,nvdReadQuery_s1_000001,ACGT,,run1\n",
     )
 
     fake_query = _FakeQueryAPI(rows=[{"Key": 1}])
@@ -193,7 +193,7 @@ def test_read_class_uploads_when_contigs_are_already_present(
     """A sample's uploaded contigs must not suppress its read query classes."""
     csv_path = tmp_path / "s1_fasta.csv"
     csv_path.write_text(
-        "experiment,sample_id,query_class,contig_id,contig_sequence,notes,"
+        "experiment,sample_id,query_class,qseqid,query_sequence,notes,"
         "nextflow_run_id\n"
         "7,s1,single_read,nvdReadQuery_s1_000001,ACGT,,run1\n",
     )
@@ -252,7 +252,7 @@ def test_partial_insert_guidance_names_the_query_class(
     """
     csv_path = tmp_path / "s1_fasta.csv"
     csv_path.write_text(
-        "experiment,sample_id,query_class,contig_id,contig_sequence,notes,"
+        "experiment,sample_id,query_class,qseqid,query_sequence,notes,"
         "nextflow_run_id\n"
         "7,s1,single_read,nvdReadQuery_s1_000001,ACGT,,run1\n"
         "7,s1,single_read,nvdReadQuery_s1_000002,TTGC,,run1\n",

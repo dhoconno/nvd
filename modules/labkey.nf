@@ -178,9 +178,9 @@ process LABKEY_CONCAT_ALL_SAMPLE_BLAST_RESULTS {
 process LABKEY_PREPARE_FASTA {
     /* Build one LabKey FASTA CSV per (sample_id, query_class) batch.
 
-       contig_id stays the raw qseqid so it still joins to the BLAST hits list;
-       the class it belongs to travels in its own query_class column, the way
-       the hits list has always carried it. */
+       qseqid keeps the BLAST hits list's own column name and its raw value,
+       so the two lists join on identically named columns throughout. The class
+       travels in query_class, as it always has on the hits side. */
 
     tag "$meta.$query_class"
     label 'low'
@@ -209,8 +209,8 @@ process LABKEY_PREPARE_FASTA {
             'experiment': ${experiment_id},
             'sample_id': '${meta}',
             'query_class': '${query_class}',
-            'contig_id': record.id,
-            'contig_sequence': str(record.seq),
+            'qseqid': record.id,
+            'query_sequence': str(record.seq),
             'notes': '',
             'nextflow_run_id': '${run_id}'
         }
@@ -218,8 +218,8 @@ process LABKEY_PREPARE_FASTA {
 
     if fasta_data:
         with open(output_name, 'w') as f:
-            fieldnames = ['experiment', 'sample_id', 'query_class', 'contig_id',
-                         'contig_sequence', 'notes', 'nextflow_run_id']
+            fieldnames = ['experiment', 'sample_id', 'query_class', 'qseqid',
+                         'query_sequence', 'notes', 'nextflow_run_id']
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(fasta_data)
