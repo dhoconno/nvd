@@ -37,6 +37,7 @@ blast_fields = [
 blast_fasta_fields = [
     "Experiment",
     "Sample Id",
+    "Query Class",
     "Contig Id",
     "Contig Sequence",
     "Notes",

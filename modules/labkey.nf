@@ -176,17 +176,23 @@ process LABKEY_CONCAT_ALL_SAMPLE_BLAST_RESULTS {
 }
 
 process LABKEY_PREPARE_FASTA {
-    tag "$meta"
+    /* Build one LabKey FASTA CSV per (sample_id, query_class) batch.
+
+       contig_id stays the raw qseqid so it still joins to the BLAST hits list;
+       the class it belongs to travels in its own query_class column, the way
+       the hits list has always carried it. */
+
+    tag "$meta.$query_class"
     label 'low'
 
     input:
-    tuple val(meta), path(fasta), val(output_name)
+    tuple val(meta), val(query_class), path(fasta)
     val experiment_id
     val run_id
     val validation_complete
 
     output:
-    tuple val(meta), path("${output_name}"), emit: csv
+    tuple val(meta), val(query_class), path("${meta}.${query_class}_fasta_labkey.csv"), emit: csv
 
     script:
     """
@@ -195,12 +201,14 @@ process LABKEY_PREPARE_FASTA {
     import csv
     from Bio import SeqIO
 
+    output_name = '${meta}.${query_class}_fasta_labkey.csv'
     fasta_data = []
 
     for record in SeqIO.parse('${fasta}', 'fasta'):
         labkey_row = {
             'experiment': ${experiment_id},
             'sample_id': '${meta}',
+            'query_class': '${query_class}',
             'contig_id': record.id,
             'contig_sequence': str(record.seq),
             'notes': '',
@@ -209,14 +217,14 @@ process LABKEY_PREPARE_FASTA {
         fasta_data.append(labkey_row)
 
     if fasta_data:
-        with open('${output_name}', 'w') as f:
-            fieldnames = ['experiment', 'sample_id', 'contig_id',
+        with open(output_name, 'w') as f:
+            fieldnames = ['experiment', 'sample_id', 'query_class', 'contig_id',
                          'contig_sequence', 'notes', 'nextflow_run_id']
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(fasta_data)
     else:
-        open('${output_name}', 'w').close()
+        open(output_name, 'w').close()
     """
 }
 
@@ -252,14 +260,14 @@ process LABKEY_UPLOAD_BLAST {
 }
 
 process LABKEY_UPLOAD_FASTA {
-    tag "${sample_id}"
+    tag "${sample_id}, ${query_class}"
     label 'low'
     secret 'LABKEY_API_KEY'
     errorStrategy 'retry'
     maxRetries 2
 
     input:
-    tuple val(sample_id), path(csv_file)
+    tuple val(sample_id), val(query_class), path(csv_file)
     val experiment_id
 
     output:
@@ -270,6 +278,7 @@ process LABKEY_UPLOAD_FASTA {
     labkey_upload_blast_fasta.py \
         --experiment-id '${experiment_id}' \
         --sample-id '${sample_id}' \
+        --query-class '${query_class}' \
         --labkey-server '${params.labkey_server}' \
         --labkey-project-name '${params.labkey_project_name}' \
         --labkey-api-key \$LABKEY_API_KEY \
