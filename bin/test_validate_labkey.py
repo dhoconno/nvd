@@ -46,7 +46,13 @@ def test_prepared_fasta_uses_query_scoped_column_names() -> None:
 
 
 def test_validator_expects_the_same_query_scoped_columns() -> None:
-    """A writer/validator mismatch fails the run, so pin them together."""
+    """The declared schema must use the same names the pipeline writes.
+
+    validate_labkey.py never reads blast_fasta_fields; it validates by inserting
+    the dummy row below. The list is the declared schema, and
+    test_dummy_row_covers_the_validated_schema is what gives it teeth by holding
+    the live dummy to it.
+    """
     assert "Qseqid" in blast_fasta_fields
     assert "Query Sequence" in blast_fasta_fields
     assert "Contig Id" not in blast_fasta_fields
@@ -61,5 +67,9 @@ def test_qseqid_matches_the_hits_list_column_name() -> None:
 
 
 def test_dummy_row_covers_the_validated_schema() -> None:
-    """The dummy insert proves the real schema accepts a row, so it must be complete."""
+    """The dummy insert is the only real check, so it must cover the schema.
+
+    A dummy narrower than the declared list proves less than it appears to: the
+    columns it omits are never exercised against the real list.
+    """
     assert _dummy_row_keys() == set(blast_fasta_fields)

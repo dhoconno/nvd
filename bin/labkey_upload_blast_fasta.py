@@ -62,7 +62,7 @@ def main():
     parser.add_argument("--labkey-project-name", required=True)
     parser.add_argument("--labkey-api-key", required=True)
     parser.add_argument("--labkey-schema", required=True)
-    parser.add_argument("--table-name", default="fasta_hits_test_nvd2")
+    parser.add_argument("--table-name", default="fasta_hits_test")
     parser.add_argument(
         "--insert-batch-size",
         type=int,
